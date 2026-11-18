@@ -35,8 +35,8 @@ function Header({ instanceId }: { instanceId?: string }) {
           className="flex h-9 w-9 items-center justify-center rounded-lg border border-sidebar-border/80 bg-sidebar-accent/30 text-sidebar-foreground hover:bg-sidebar-accent hover:text-foreground transition-all active:scale-95 shadow-2xs"
           title={
             isCollapsed
-              ? t("sidebar.show", { defaultValue: "Mostrar menu lateral (Ctrl+B)" })
-              : t("sidebar.hide", { defaultValue: "Recolher menu lateral (Ctrl+B)" })
+              ? t("sidebar.show", { defaultValue: "Expandir menu lateral (Ctrl+B)" })
+              : t("sidebar.hide", { defaultValue: "Minimizar menu lateral (Ctrl+B)" })
           }
         >
           {isCollapsed ? <PanelLeft className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
