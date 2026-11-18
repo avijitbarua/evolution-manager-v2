@@ -460,7 +460,7 @@ function Messages({ textareaRef, handleTextareaChange, textareaHeight, lastMessa
         return;
       }
 
-      if (data?.data?.key?.remoteJid !== remoteJid) {
+      if (data?.data?.key?.remoteJid !== remoteJid && data?.data?.key?.remoteJidAlt !== remoteJid) {
         return;
       }
 

@@ -60,13 +60,14 @@ function Chat() {
 
     const socket = connectSocket(serverUrl);
 
-    const handle = (data: { instance?: string; data?: { key?: { remoteJid?: string; profilePictureUrl?: string }; pushName?: string } }) => {
+    const handle = (data: { instance?: string; data?: { key?: { remoteJid?: string; remoteJidAlt?: string; profilePictureUrl?: string }; pushName?: string } }) => {
       if (!instance || data.instance !== instance.name) return;
       const jid = data?.data?.key?.remoteJid;
+      const altJid = data?.data?.key?.remoteJidAlt;
       if (!jid) return;
 
       setRealtimeChats((prev) => {
-        const idx = prev.findIndex((c) => c.remoteJid === jid);
+        const idx = prev.findIndex((c) => c.remoteJid === jid || (altJid && c.remoteJid === altJid));
         const obj = {
           id: jid,
           remoteJid: jid,
