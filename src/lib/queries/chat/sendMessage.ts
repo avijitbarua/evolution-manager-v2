@@ -59,13 +59,17 @@ const sendMedia = async ({ instanceName, token, data }: SendMediaParams) => {
 
 const sendAudio = async ({ instanceName, token, data }: SendAudioParams) => {
   try {
-    // Always send as JSON with base64 audio
+    const audioData = (data as any).audio || data.audioMessage?.audio;
+    // Always send as JSON with base64 audio and ensure top-level audio property
     const jsonData = {
       number: data.number,
+      audio: audioData,
       audioMessage: {
-        audio: data.audioMessage.audio, // Base64 string
+        audio: audioData,
       },
       options: data.options,
+      encoding: data.encoding ?? true,
+      quoted: data.quoted,
     };
 
     const response = await api.post(`/message/sendWhatsAppAudio/${instanceName}`, jsonData, {

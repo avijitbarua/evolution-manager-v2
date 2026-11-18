@@ -220,6 +220,23 @@ function Chat() {
                       <p className="truncate text-sm text-muted-foreground">
                         {formatJid(chat.remoteJid)}
                       </p>
+                      {chat.labels && chat.labels.length > 0 && (
+                        <div className="mt-1 flex flex-wrap gap-1">
+                          {chat.labels.slice(0, 3).map((lbl, idx) => (
+                            <span
+                              key={idx}
+                              className="inline-flex items-center rounded-xs border border-primary/20 bg-primary/10 px-1 py-0 text-[10px] font-medium text-primary"
+                            >
+                              {lbl}
+                            </span>
+                          ))}
+                          {chat.labels.length > 3 && (
+                            <span className="text-[10px] text-muted-foreground">
+                              +{chat.labels.length - 3}
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </button>

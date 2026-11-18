@@ -81,6 +81,8 @@ export type Message = {
   messageTimestamp: string;
   instanceId: string;
   source: string;
+  status?: string | number;
+  speechToText?: string;
 };
 
 export type SendText = {
@@ -90,7 +92,9 @@ export type SendText = {
     delay?: number;
     presence?: string;
     linkPreview?: boolean;
+    quoted?: any;
   };
+  quoted?: any;
 };
 
 export type SendMedia = {
@@ -105,18 +109,25 @@ export type SendMedia = {
   options?: {
     delay?: number;
     presence?: string;
+    quoted?: any;
   };
+  quoted?: any;
 };
 
 export type SendAudio = {
   number: string;
-  audioMessage: {
+  audio?: string;
+  audioMessage?: {
     audio: string; // Base64 string
   };
   options?: {
     delay?: number;
     presence?: string;
+    encoding?: boolean;
+    quoted?: any;
   };
+  encoding?: boolean;
+  quoted?: any;
 };
 
 export type IntegrationSession = {
