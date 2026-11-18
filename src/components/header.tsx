@@ -1,7 +1,7 @@
 import { Avatar, AvatarImage } from "@evoapi/design-system/avatar";
 import { Button } from "@evoapi/design-system/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { LogOut, PanelLeft, PanelLeftClose } from "lucide-react";
+import { LogOut, Menu } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
@@ -24,29 +24,30 @@ function Header({ instanceId }: { instanceId?: string }) {
   };
 
   const { data: instance } = useFetchInstance({ instanceId });
-  const { isCollapsed, toggleSidebar } = useSidebar();
+  const { toggleSidebar } = useSidebar();
 
   return (
     <header className="flex h-16 items-center justify-between border-b border-sidebar-border bg-sidebar px-4 shadow-sm select-none">
       <div className="flex items-center gap-3">
+        {/* Mobile menu trigger only on screens < md */}
         <button
           type="button"
           onClick={toggleSidebar}
-          className="flex h-9 w-9 items-center justify-center rounded-lg border border-sidebar-border/80 bg-sidebar-accent/30 text-sidebar-foreground hover:bg-sidebar-accent hover:text-foreground transition-all active:scale-95 shadow-2xs"
-          title={
-            isCollapsed
-              ? t("sidebar.show", { defaultValue: "Expandir menu lateral (Ctrl+B)" })
-              : t("sidebar.hide", { defaultValue: "Minimizar menu lateral (Ctrl+B)" })
-          }
+          className="flex md:hidden h-9 w-9 items-center justify-center rounded-lg border border-sidebar-border/80 bg-sidebar-accent/30 text-sidebar-foreground hover:bg-sidebar-accent hover:text-foreground transition-all active:scale-95 shadow-2xs"
+          title="Menu"
         >
-          {isCollapsed ? <PanelLeft className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+          <Menu className="h-4 w-4" />
         </button>
 
-        {instanceId && instance && (
-          <div className="hidden sm:flex items-center gap-2 text-sm text-muted-foreground font-medium">
+        {instanceId && instance ? (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground font-medium">
             <span className="opacity-70">Evolution Manager</span>
             <span>/</span>
             <span className="text-foreground font-semibold">{instance.profileName || instance.name}</span>
+          </div>
+        ) : (
+          <div className="flex items-center text-sm font-semibold text-foreground">
+            Evolution Manager
           </div>
         )}
       </div>

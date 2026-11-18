@@ -13,6 +13,7 @@ import {
   IterationCcw,
   LayoutDashboard,
   MessageCircle,
+  PanelLeft,
   PanelLeftClose,
   X,
   Zap,
@@ -52,6 +53,7 @@ type Menu = MenuLeaf | MenuGroup;
 function SidebarShell({ children, footer }: { children: React.ReactNode; footer?: React.ReactNode }) {
   const currentYear = new Date().getFullYear();
   const { theme } = useTheme();
+  const { t } = useTranslation();
   const { isCollapsed, isMobileOpen, toggleDesktop, closeMobile } = useSidebar();
   const logoSrc =
     theme === "dark"
@@ -68,7 +70,7 @@ function SidebarShell({ children, footer }: { children: React.ReactNode; footer?
         />
       )}
 
-      {/* Mobile Drawer (always full width w-64) */}
+      {/* Mobile Drawer (Always full width w-64) */}
       <aside
         className={cn(
           "fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-sidebar text-sidebar-foreground shadow-2xl transition-transform duration-300 ease-in-out md:hidden border-r border-sidebar-border",
@@ -87,18 +89,18 @@ function SidebarShell({ children, footer }: { children: React.ReactNode; footer?
           <button
             type="button"
             onClick={closeMobile}
-            className="flex h-8 w-8 items-center justify-center rounded-md text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors"
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        <nav className="flex-1 overflow-y-auto px-2 py-4 space-y-1" onClick={() => closeMobile()}>
+        <nav className="flex-1 overflow-y-auto px-2.5 py-4 space-y-1" onClick={() => closeMobile()}>
           {children}
         </nav>
 
         {footer && (
-          <div className="border-t border-sidebar-border px-2 py-3 space-y-1 shrink-0">
+          <div className="border-t border-sidebar-border px-2.5 py-3 space-y-1 shrink-0">
             {footer}
           </div>
         )}
@@ -116,6 +118,7 @@ function SidebarShell({ children, footer }: { children: React.ReactNode; footer?
           isCollapsed ? "w-16" : "w-56",
         )}
       >
+        {/* Sidebar Header with Logo and Hover Toggle */}
         <div
           className={cn(
             "h-16 flex items-center border-b border-sidebar-border shrink-0",
@@ -123,74 +126,99 @@ function SidebarShell({ children, footer }: { children: React.ReactNode; footer?
           )}
         >
           {isCollapsed ? (
-            <TooltipWrapper content="Expandir menu (Ctrl+B)" side="right">
+            /* Mini Sidebar Top Logo with Hover Toggle */
+            <TooltipWrapper content={t("sidebar.show", { defaultValue: "Expandir menu lateral (Ctrl+B)" })} side="right">
               <button
                 type="button"
                 onClick={toggleDesktop}
-                className="flex items-center justify-center p-1.5 rounded-lg hover:bg-sidebar-accent transition-colors"
+                className="group relative flex h-10 w-10 items-center justify-center rounded-xl border border-sidebar-border/70 bg-sidebar-accent/30 hover:bg-sidebar-accent hover:border-sidebar-border text-sidebar-foreground transition-all duration-200 cursor-pointer shadow-2xs active:scale-95"
+                title={t("sidebar.show", { defaultValue: "Expandir menu lateral (Ctrl+B)" })}
               >
-                <img
-                  src="/assets/images/evolution-logo.png"
-                  alt="Evolution API"
-                  className="h-7 w-7 object-contain"
-                />
+                {/* Default state: Logo */}
+                <div className="flex items-center justify-center transition-all duration-200 group-hover:opacity-0 group-hover:scale-75">
+                  <img
+                    src="/assets/images/evolution-logo.png"
+                    alt="Evolution API"
+                    className="h-5 w-auto max-w-[32px] object-contain"
+                  />
+                </div>
+
+                {/* Hover state: Expand icon */}
+                <div className="absolute inset-0 flex items-center justify-center opacity-0 scale-75 group-hover:opacity-100 group-hover:scale-100 transition-all duration-200 text-primary">
+                  <PanelLeft className="h-5 w-5" />
+                </div>
               </button>
             </TooltipWrapper>
           ) : (
+            /* Expanded Mode: Full Logo + Collapse Button */
             <>
               <img
                 src={logoSrc}
                 alt="Evolution API"
-                className="h-7"
+                className="h-7 cursor-pointer"
+                onClick={toggleDesktop}
                 onError={(e) => {
                   e.currentTarget.src = "/assets/images/evolution-logo.png";
                 }}
               />
-              <button
-                type="button"
-                onClick={toggleDesktop}
-                className="flex h-8 w-8 items-center justify-center rounded-md text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors"
-                title="Minimizar menu lateral (Ctrl+B)"
-              >
-                <PanelLeftClose className="h-4 w-4" />
-              </button>
+              <TooltipWrapper content={t("sidebar.hide", { defaultValue: "Minimizar menu lateral (Ctrl+B)" })} side="bottom">
+                <button
+                  type="button"
+                  onClick={toggleDesktop}
+                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-sidebar-border/60 bg-sidebar-accent/30 text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-foreground transition-all active:scale-95 shadow-2xs"
+                  title={t("sidebar.hide", { defaultValue: "Minimizar menu lateral (Ctrl+B)" })}
+                >
+                  <PanelLeftClose className="h-4 w-4" />
+                </button>
+              </TooltipWrapper>
             </>
           )}
         </div>
 
+        {/* Navigation Items */}
         <nav
           className={cn(
-            "flex-1 overflow-y-auto py-4 space-y-1",
-            isCollapsed ? "px-1" : "px-2",
+            "flex-1 overflow-y-auto overflow-x-hidden py-3",
+            isCollapsed
+              ? "flex flex-col items-center gap-1.5 px-2"
+              : "space-y-1 px-2.5",
           )}
         >
           {children}
         </nav>
 
+        {/* Footer Links */}
         {footer && (
           <div
             className={cn(
-              "border-t border-sidebar-border py-3 space-y-1 shrink-0",
-              isCollapsed ? "px-1" : "px-2",
+              "border-t border-sidebar-border shrink-0 py-3",
+              isCollapsed
+                ? "flex flex-col items-center gap-1.5 px-2"
+                : "space-y-1 px-2.5",
             )}
           >
             {footer}
           </div>
         )}
 
+        {/* Version / Copyright Info */}
         <div
           className={cn(
-            "border-t border-sidebar-border shrink-0 text-center",
-            isCollapsed ? "py-3 px-1" : "p-4 text-left",
+            "border-t border-sidebar-border shrink-0 flex items-center",
+            isCollapsed ? "justify-center py-3 px-1" : "justify-between p-4",
           )}
         >
           {!isCollapsed ? (
-            <>
+            <div>
               <div className="text-sm font-medium text-primary">Evolution Manager</div>
-              <div className="mt-1 text-xs text-muted-foreground">© {currentYear} All rights reserved</div>
-            </>
+              <div className="mt-0.5 text-xs text-muted-foreground">© {currentYear} All rights reserved</div>
+            </div>
           ) : (
-            <span className="text-[10px] font-mono text-muted-foreground">v2.0</span>
+            <TooltipWrapper content={`Evolution Manager © ${currentYear}`} side="right">
+              <span className="text-[10px] font-mono font-semibold text-muted-foreground/70 hover:text-primary transition-colors cursor-default">
+                v2.0
+              </span>
+            </TooltipWrapper>
           )}
         </div>
       </aside>
@@ -203,11 +231,13 @@ function NavItem({
   icon: Icon,
   label,
   isExternal,
+  end,
 }: {
   to: string;
   icon?: typeof LayoutDashboard;
   label: string;
   isExternal?: boolean;
+  end?: boolean;
 }) {
   const { isCollapsed } = useSidebar();
 
@@ -217,24 +247,25 @@ function NavItem({
         href={to}
         target="_blank"
         rel="noreferrer"
-        className="flex h-10 w-10 mx-auto items-center justify-center rounded-lg text-muted-foreground transition-all hover:bg-accent hover:text-foreground"
+        className="flex h-10 w-10 items-center justify-center rounded-xl text-muted-foreground transition-all hover:bg-sidebar-accent hover:text-foreground"
       >
-        {Icon && <Icon className="h-5 w-5 flex-shrink-0" />}
+        {Icon && <Icon className="h-5 w-5 shrink-0" />}
       </a>
     ) : (
       <NavLink
         to={to}
+        end={end}
         className={({ isActive }) =>
           cn(
-            "flex h-10 w-10 mx-auto items-center justify-center rounded-lg transition-all",
+            "flex h-10 w-10 items-center justify-center rounded-xl transition-all",
             isActive
-              ? "bg-primary/10 text-primary font-medium"
-              : "text-muted-foreground hover:bg-accent hover:text-foreground",
+              ? "bg-primary text-primary-foreground font-semibold shadow-xs"
+              : "text-muted-foreground hover:bg-sidebar-accent hover:text-foreground",
           )
         }
       >
         {({ isActive }) =>
-          Icon && <Icon className={cn("h-5 w-5 flex-shrink-0", isActive && "text-primary")} />
+          Icon && <Icon className={cn("h-5 w-5 shrink-0", isActive && "text-primary-foreground")} />
         }
       </NavLink>
     );
@@ -252,9 +283,9 @@ function NavItem({
         href={to}
         target="_blank"
         rel="noreferrer"
-        className="flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium text-muted-foreground transition-all hover:bg-accent hover:text-foreground"
+        className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-all hover:bg-sidebar-accent hover:text-foreground"
       >
-        {Icon && <Icon className="h-5 w-5 flex-shrink-0" />}
+        {Icon && <Icon className="h-5 w-5 shrink-0" />}
         <span>{label}</span>
       </a>
     );
@@ -263,16 +294,19 @@ function NavItem({
   return (
     <NavLink
       to={to}
+      end={end}
       className={({ isActive }) =>
         cn(
-          "flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-all",
-          isActive ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-accent hover:text-foreground",
+          "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all",
+          isActive
+            ? "bg-primary/10 text-primary font-semibold"
+            : "text-muted-foreground hover:bg-sidebar-accent hover:text-foreground",
         )
       }
     >
       {({ isActive }) => (
         <>
-          {Icon && <Icon className={cn("h-5 w-5 flex-shrink-0", isActive && "text-primary")} />}
+          {Icon && <Icon className={cn("h-5 w-5 shrink-0", isActive && "text-primary")} />}
           <span>{label}</span>
         </>
       )}
@@ -300,18 +334,18 @@ function SidebarGroupItem({
             <button
               type="button"
               className={cn(
-                "flex h-10 w-10 mx-auto items-center justify-center rounded-lg transition-all cursor-pointer",
+                "flex h-10 w-10 items-center justify-center rounded-xl transition-all cursor-pointer",
                 groupActive
-                  ? "bg-primary/10 text-primary font-medium"
-                  : "text-muted-foreground hover:bg-accent hover:text-foreground",
+                  ? "bg-primary/20 text-primary border border-primary/30 font-semibold shadow-2xs"
+                  : "text-muted-foreground hover:bg-sidebar-accent hover:text-foreground",
               )}
             >
-              <menu.icon className={cn("h-5 w-5 flex-shrink-0", groupActive && "text-primary")} />
+              <menu.icon className={cn("h-5 w-5 shrink-0", groupActive && "text-primary")} />
             </button>
           </DropdownMenuTrigger>
         </TooltipWrapper>
         <DropdownMenuContent side="right" align="start" className="w-48 p-1.5 shadow-xl">
-          <div className="px-2 py-1 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+          <div className="px-2.5 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider border-b border-border/40 mb-1">
             {menu.title}
           </div>
           {menu.children.map((child) => (
@@ -323,7 +357,7 @@ function SidebarGroupItem({
                     "flex items-center rounded-md px-2.5 py-1.5 text-sm transition-colors w-full cursor-pointer",
                     isActive
                       ? "bg-primary/10 text-primary font-medium"
-                      : "text-foreground hover:bg-accent",
+                      : "text-foreground hover:bg-sidebar-accent",
                   )
                 }
               >
@@ -340,8 +374,8 @@ function SidebarGroupItem({
     <Collapsible defaultOpen={groupActive}>
       <CollapsibleTrigger
         className={cn(
-          "flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-all",
-          groupActive ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-accent hover:text-foreground",
+          "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all",
+          groupActive ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-sidebar-accent hover:text-foreground",
         )}
       >
         <menu.icon className={cn("h-5 w-5 flex-shrink-0", groupActive && "text-primary")} />
@@ -383,7 +417,7 @@ function MainSidebar() {
   const { t } = useTranslation();
   return (
     <SidebarShell footer={<ExternalLinks />}>
-      <NavItem to="/manager" icon={LayoutDashboard} label={t("sidebar.dashboard")} />
+      <NavItem to="/manager" icon={LayoutDashboard} label={t("sidebar.dashboard")} end />
     </SidebarShell>
   );
 }
@@ -392,6 +426,7 @@ function InstanceSidebar() {
   const { t } = useTranslation();
   const { instance } = useInstance();
   const { pathname } = useLocation();
+  const { isCollapsed } = useSidebar();
 
   const base = instance ? `/manager/instance/${instance.id}` : "";
 
@@ -453,8 +488,39 @@ function InstanceSidebar() {
 
   return (
     <SidebarShell footer={<ExternalLinks />}>
-      <NavItem to="/manager" icon={LayoutDashboard} label={`← ${t("dashboard.title")}`} />
-      <div className="my-2 border-t border-sidebar-border" />
+      {/* Back to Instances Button */}
+      {isCollapsed ? (
+        <TooltipWrapper content={`← ${t("dashboard.title")}`} side="right">
+          <NavLink
+            to="/manager"
+            end
+            className={({ isActive }) =>
+              cn(
+                "flex h-10 w-10 items-center justify-center rounded-xl transition-all",
+                isActive
+                  ? "bg-primary text-primary-foreground font-semibold shadow-xs"
+                  : "text-primary bg-primary/10 hover:bg-primary/20 border border-primary/20 shadow-2xs",
+              )
+            }
+          >
+            <LayoutDashboard className="h-5 w-5 shrink-0" />
+          </NavLink>
+        </TooltipWrapper>
+      ) : (
+        <NavLink
+          to="/manager"
+          end
+          className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition-all text-primary bg-primary/10 hover:bg-primary/20 border border-primary/20 shadow-2xs"
+        >
+          <LayoutDashboard className="h-5 w-5 shrink-0 text-primary" />
+          <span>{`← ${t("dashboard.title")}`}</span>
+        </NavLink>
+      )}
+
+      {/* Clean Divider */}
+      <div className={cn("border-t border-sidebar-border/70", isCollapsed ? "my-1.5 w-7" : "my-2 w-full")} />
+
+      {/* Main Menu Items */}
       {visibleMenus.map((menu) => {
         if ("children" in menu) {
           return (
