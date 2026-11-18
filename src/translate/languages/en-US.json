@@ -304,7 +304,9 @@
     "flowise": "Flowise",
     "documentation": "Documentation",
     "postman": "Postman",
-    "discord": "Discord"
+    "discord": "Discord",
+    "show": "Show sidebar (Ctrl+B)",
+    "hide": "Hide sidebar (Ctrl+B)"
   },
   "toast": {
     "instance": {

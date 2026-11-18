@@ -176,7 +176,9 @@
     "flowise": "Flowise",
     "documentation": "Documentación",
     "postman": "Postman",
-    "discord": "Discord"
+    "discord": "Discord",
+    "show": "Mostrar barra lateral (Ctrl+B)",
+    "hide": "Ocultar barra lateral (Ctrl+B)"
   },
   "toast": {
     "instance": {

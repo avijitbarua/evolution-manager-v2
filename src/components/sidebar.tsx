@@ -7,6 +7,8 @@ import {
   IterationCcw,
   LayoutDashboard,
   MessageCircle,
+  PanelLeftClose,
+  X,
   Zap,
 } from "lucide-react";
 import { useMemo } from "react";
@@ -15,6 +17,7 @@ import { NavLink, useLocation } from "react-router-dom";
 
 import { useTheme } from "@/components/theme-provider";
 import { useInstance } from "@/contexts/InstanceContext";
+import { useSidebar } from "@/contexts/SidebarContext";
 
 import { FEATURES, FeatureKey, isFeatureEnabled } from "@/lib/provider/features";
 import { cn } from "@/lib/utils";
@@ -42,39 +45,107 @@ type Menu = MenuLeaf | MenuGroup;
 function SidebarShell({ children, footer }: { children: React.ReactNode; footer?: React.ReactNode }) {
   const currentYear = new Date().getFullYear();
   const { theme } = useTheme();
+  const { isCollapsed, isMobileOpen, toggleDesktop, closeMobile } = useSidebar();
   const logoSrc =
     theme === "dark"
       ? "https://evolution-api.com/files/evo/evolution-logo-white.svg"
       : "https://evolution-api.com/files/evo/evolution-logo.svg";
 
   return (
-    <aside className="hidden md:flex bg-sidebar text-sidebar-foreground flex-col w-56 border-r border-sidebar-border">
-      <div className="h-16 flex items-center px-4 border-b border-sidebar-border">
-        <img
-          src={logoSrc}
-          alt="Evolution API"
-          className="h-7"
-          onError={(e) => {
-            e.currentTarget.src = "/assets/images/evolution-logo.png";
-          }}
+    <>
+      {/* Mobile Drawer Backdrop */}
+      {isMobileOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-xs md:hidden animate-in fade-in duration-200"
+          onClick={closeMobile}
         />
-      </div>
-
-      <nav className="flex-1 overflow-y-auto px-2 py-4 space-y-1">
-        {children}
-      </nav>
-
-      {footer && (
-        <div className="border-t border-sidebar-border px-2 py-3 space-y-1">
-          {footer}
-        </div>
       )}
 
-      <div className="p-4 border-t border-sidebar-border">
-        <div className="text-sm font-medium text-primary">Evolution Manager</div>
-        <div className="mt-1 text-xs text-muted-foreground">© {currentYear} All rights reserved</div>
-      </div>
-    </aside>
+      {/* Mobile Drawer */}
+      <aside
+        className={cn(
+          "fixed inset-y-0 left-0 z-50 flex w-64 flex-col bg-sidebar text-sidebar-foreground shadow-2xl transition-transform duration-300 ease-in-out md:hidden border-r border-sidebar-border",
+          isMobileOpen ? "translate-x-0" : "-translate-x-full",
+        )}
+      >
+        <div className="h-16 flex items-center justify-between px-4 border-b border-sidebar-border shrink-0">
+          <img
+            src={logoSrc}
+            alt="Evolution API"
+            className="h-7"
+            onError={(e) => {
+              e.currentTarget.src = "/assets/images/evolution-logo.png";
+            }}
+          />
+          <button
+            type="button"
+            onClick={closeMobile}
+            className="flex h-8 w-8 items-center justify-center rounded-md text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <nav className="flex-1 overflow-y-auto px-2 py-4 space-y-1" onClick={() => closeMobile()}>
+          {children}
+        </nav>
+
+        {footer && (
+          <div className="border-t border-sidebar-border px-2 py-3 space-y-1 shrink-0">
+            {footer}
+          </div>
+        )}
+
+        <div className="p-4 border-t border-sidebar-border shrink-0">
+          <div className="text-sm font-medium text-primary">Evolution Manager</div>
+          <div className="mt-1 text-xs text-muted-foreground">© {currentYear} All rights reserved</div>
+        </div>
+      </aside>
+
+      {/* Desktop Collapsible Sidebar */}
+      <aside
+        className={cn(
+          "hidden md:flex bg-sidebar text-sidebar-foreground flex-col border-sidebar-border transition-[width,margin,opacity] duration-300 ease-in-out shrink-0 select-none",
+          isCollapsed
+            ? "w-0 -ml-56 opacity-0 pointer-events-none border-r-0 overflow-hidden"
+            : "w-56 ml-0 opacity-100 border-r overflow-y-auto",
+        )}
+      >
+        <div className="h-16 flex items-center justify-between px-4 border-b border-sidebar-border shrink-0">
+          <img
+            src={logoSrc}
+            alt="Evolution API"
+            className="h-7"
+            onError={(e) => {
+              e.currentTarget.src = "/assets/images/evolution-logo.png";
+            }}
+          />
+          <button
+            type="button"
+            onClick={toggleDesktop}
+            className="flex h-8 w-8 items-center justify-center rounded-md text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors"
+            title="Recolher menu lateral"
+          >
+            <PanelLeftClose className="h-4 w-4" />
+          </button>
+        </div>
+
+        <nav className="flex-1 overflow-y-auto px-2 py-4 space-y-1">
+          {children}
+        </nav>
+
+        {footer && (
+          <div className="border-t border-sidebar-border px-2 py-3 space-y-1 shrink-0">
+            {footer}
+          </div>
+        )}
+
+        <div className="p-4 border-t border-sidebar-border shrink-0">
+          <div className="text-sm font-medium text-primary">Evolution Manager</div>
+          <div className="mt-1 text-xs text-muted-foreground">© {currentYear} All rights reserved</div>
+        </div>
+      </aside>
+    </>
   );
 }
 
