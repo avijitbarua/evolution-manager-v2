@@ -240,6 +240,12 @@ function NavItem({
   end?: boolean;
 }) {
   const { isCollapsed } = useSidebar();
+  const location = useLocation();
+
+  const currentPath = location.pathname;
+  const isActive = end
+    ? currentPath === to || currentPath === `${to}/`
+    : currentPath === to || currentPath.startsWith(`${to}/`);
 
   if (isCollapsed) {
     const trigger = isExternal ? (
@@ -247,7 +253,7 @@ function NavItem({
         href={to}
         target="_blank"
         rel="noreferrer"
-        className="flex h-10 w-10 items-center justify-center rounded-xl text-muted-foreground transition-all hover:bg-sidebar-accent hover:text-foreground"
+        className="flex h-10 w-10 items-center justify-center rounded-xl text-muted-foreground hover:bg-sidebar-accent hover:text-foreground transition-all"
       >
         {Icon && <Icon className="h-5 w-5 shrink-0" />}
       </a>
@@ -255,18 +261,14 @@ function NavItem({
       <NavLink
         to={to}
         end={end}
-        className={({ isActive }) =>
-          cn(
-            "flex h-10 w-10 items-center justify-center rounded-xl transition-all",
-            isActive
-              ? "bg-primary text-primary-foreground font-semibold shadow-xs"
-              : "text-muted-foreground hover:bg-sidebar-accent hover:text-foreground",
-          )
-        }
+        className={cn(
+          "flex h-10 w-10 items-center justify-center rounded-xl transition-all",
+          isActive
+            ? "bg-primary/15 text-primary border border-primary/30 shadow-xs font-semibold"
+            : "text-muted-foreground hover:bg-sidebar-accent hover:text-foreground border border-transparent",
+        )}
       >
-        {({ isActive }) =>
-          Icon && <Icon className={cn("h-5 w-5 shrink-0", isActive && "text-primary-foreground")} />
-        }
+        {Icon && <Icon className={cn("h-5 w-5 shrink-0 transition-colors", isActive ? "text-primary" : "text-muted-foreground")} />}
       </NavLink>
     );
 
@@ -295,21 +297,15 @@ function NavItem({
     <NavLink
       to={to}
       end={end}
-      className={({ isActive }) =>
-        cn(
-          "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all",
-          isActive
-            ? "bg-primary/10 text-primary font-semibold"
-            : "text-muted-foreground hover:bg-sidebar-accent hover:text-foreground",
-        )
-      }
-    >
-      {({ isActive }) => (
-        <>
-          {Icon && <Icon className={cn("h-5 w-5 shrink-0", isActive && "text-primary")} />}
-          <span>{label}</span>
-        </>
+      className={cn(
+        "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all",
+        isActive
+          ? "bg-primary/10 text-primary font-semibold"
+          : "text-muted-foreground hover:bg-sidebar-accent hover:text-foreground",
       )}
+    >
+      {Icon && <Icon className={cn("h-5 w-5 shrink-0 transition-colors", isActive ? "text-primary" : "text-muted-foreground")} />}
+      <span>{label}</span>
     </NavLink>
   );
 }
@@ -324,7 +320,7 @@ function SidebarGroupItem({
   pathname: string;
 }) {
   const { isCollapsed } = useSidebar();
-  const groupActive = menu.children.some((c) => c.path && pathname.includes(c.path));
+  const groupActive = menu.children.some((c) => c.path && (pathname.includes("/" + c.path) || pathname.endsWith(c.path)));
 
   if (isCollapsed) {
     return (
@@ -336,35 +332,36 @@ function SidebarGroupItem({
               className={cn(
                 "flex h-10 w-10 items-center justify-center rounded-xl transition-all cursor-pointer",
                 groupActive
-                  ? "bg-primary/20 text-primary border border-primary/30 font-semibold shadow-2xs"
-                  : "text-muted-foreground hover:bg-sidebar-accent hover:text-foreground",
+                  ? "bg-primary/15 text-primary border border-primary/30 font-semibold shadow-xs"
+                  : "text-muted-foreground hover:bg-sidebar-accent hover:text-foreground border border-transparent",
               )}
             >
-              <menu.icon className={cn("h-5 w-5 shrink-0", groupActive && "text-primary")} />
+              <menu.icon className={cn("h-5 w-5 shrink-0 transition-colors", groupActive ? "text-primary" : "text-muted-foreground")} />
             </button>
           </DropdownMenuTrigger>
         </TooltipWrapper>
-        <DropdownMenuContent side="right" align="start" className="w-48 p-1.5 shadow-xl">
+        <DropdownMenuContent side="right" align="start" className="w-48 p-1.5 shadow-xl border border-border bg-popover text-popover-foreground rounded-xl">
           <div className="px-2.5 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider border-b border-border/40 mb-1">
             {menu.title}
           </div>
-          {menu.children.map((child) => (
-            <DropdownMenuItem key={child.id} asChild>
-              <NavLink
-                to={`${base}/${child.path}`}
-                className={({ isActive }) =>
-                  cn(
-                    "flex items-center rounded-md px-2.5 py-1.5 text-sm transition-colors w-full cursor-pointer",
-                    isActive
-                      ? "bg-primary/10 text-primary font-medium"
-                      : "text-foreground hover:bg-sidebar-accent",
-                  )
-                }
-              >
-                {child.title}
-              </NavLink>
-            </DropdownMenuItem>
-          ))}
+          {menu.children.map((child) => {
+            const childActive = pathname === `${base}/${child.path}` || pathname.startsWith(`${base}/${child.path}/`);
+            return (
+              <DropdownMenuItem key={child.id} asChild>
+                <NavLink
+                  to={`${base}/${child.path}`}
+                  className={cn(
+                    "flex items-center rounded-lg px-2.5 py-1.5 text-sm transition-colors w-full cursor-pointer",
+                    childActive
+                      ? "bg-primary/15 text-primary font-semibold"
+                      : "text-foreground hover:bg-accent",
+                  )}
+                >
+                  {child.title}
+                </NavLink>
+              </DropdownMenuItem>
+            );
+          })}
         </DropdownMenuContent>
       </DropdownMenu>
     );
@@ -375,10 +372,10 @@ function SidebarGroupItem({
       <CollapsibleTrigger
         className={cn(
           "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all",
-          groupActive ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-sidebar-accent hover:text-foreground",
+          groupActive ? "bg-primary/10 text-primary font-semibold" : "text-muted-foreground hover:bg-sidebar-accent hover:text-foreground",
         )}
       >
-        <menu.icon className={cn("h-5 w-5 flex-shrink-0", groupActive && "text-primary")} />
+        <menu.icon className={cn("h-5 w-5 flex-shrink-0 transition-colors", groupActive ? "text-primary" : "text-muted-foreground")} />
         <span>{menu.title}</span>
         <ChevronDown className="ml-auto h-4 w-4 transition-transform data-[state=open]:rotate-180" />
       </CollapsibleTrigger>
@@ -390,7 +387,7 @@ function SidebarGroupItem({
             className={({ isActive }) =>
               cn(
                 "rounded-md px-3 py-1.5 text-sm transition-all",
-                isActive ? "text-primary font-medium" : "text-muted-foreground hover:text-foreground",
+                isActive ? "text-primary font-semibold bg-primary/10" : "text-muted-foreground hover:text-foreground",
               )
             }
           >
@@ -486,6 +483,8 @@ function InstanceSidebar() {
     [menus],
   );
 
+  const isManagerActive = pathname === "/manager" || pathname === "/manager/";
+
   return (
     <SidebarShell footer={<ExternalLinks />}>
       {/* Back to Instances Button */}
@@ -494,23 +493,26 @@ function InstanceSidebar() {
           <NavLink
             to="/manager"
             end
-            className={({ isActive }) =>
-              cn(
-                "flex h-10 w-10 items-center justify-center rounded-xl transition-all",
-                isActive
-                  ? "bg-primary text-primary-foreground font-semibold shadow-xs"
-                  : "text-primary bg-primary/10 hover:bg-primary/20 border border-primary/20 shadow-2xs",
-              )
-            }
+            className={cn(
+              "flex h-10 w-10 items-center justify-center rounded-xl transition-all",
+              isManagerActive
+                ? "bg-primary/15 text-primary border border-primary/30 shadow-xs font-semibold"
+                : "text-muted-foreground hover:bg-sidebar-accent hover:text-primary border border-transparent",
+            )}
           >
-            <LayoutDashboard className="h-5 w-5 shrink-0" />
+            <LayoutDashboard className={cn("h-5 w-5 shrink-0 transition-colors", isManagerActive ? "text-primary" : "text-muted-foreground")} />
           </NavLink>
         </TooltipWrapper>
       ) : (
         <NavLink
           to="/manager"
           end
-          className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition-all text-primary bg-primary/10 hover:bg-primary/20 border border-primary/20 shadow-2xs"
+          className={cn(
+            "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition-all",
+            isManagerActive
+              ? "bg-primary/15 text-primary border border-primary/30 shadow-xs"
+              : "text-primary bg-primary/10 hover:bg-primary/20 border border-primary/20 shadow-2xs",
+          )}
         >
           <LayoutDashboard className="h-5 w-5 shrink-0 text-primary" />
           <span>{`← ${t("dashboard.title")}`}</span>
