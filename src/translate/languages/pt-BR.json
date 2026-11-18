@@ -1629,6 +1629,20 @@
       "unread": "Não lidas",
       "favourites": "Favoritas",
       "groups": "Grupos"
+    },
+    "archived": {
+      "title": "Arquivadas",
+      "notice": "Essas conversas permanecem arquivadas ao receber novas mensagens.",
+      "empty": "Nenhuma conversa arquivada",
+      "archive": "Arquivar conversa",
+      "unarchive": "Desarquivar conversa"
+    },
+    "locked": {
+      "title": "Conversas bloqueadas",
+      "notice": "Essas conversas são mantidas em um espaço reservado e seguro.",
+      "empty": "Nenhuma conversa bloqueada",
+      "lock": "Bloquear conversa",
+      "unlock": "Desbloquear conversa"
     }
   },
   "common": {

@@ -1628,6 +1628,20 @@
       "unread": "Non lues",
       "favourites": "Favoris",
       "groups": "Groupes"
+    },
+    "archived": {
+      "title": "Archivées",
+      "notice": "Ces discussions restent archivées lors de la réception de nouveaux messages.",
+      "empty": "Aucune discussion archivée",
+      "archive": "Archiver la discussion",
+      "unarchive": "Désarchiver la discussion"
+    },
+    "locked": {
+      "title": "Discussions verrouillées",
+      "notice": "Ces discussions sont conservées dans un espace réservé et sécurisé.",
+      "empty": "Aucune discussion verrouillée",
+      "lock": "Verrouiller la discussion",
+      "unlock": "Déverrouiller la discussion"
     }
   },
   "common": {

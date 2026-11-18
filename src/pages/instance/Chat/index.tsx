@@ -86,6 +86,8 @@ function Chat() {
       <div className={cn("h-full", showSidebar ? "flex w-full md:w-auto" : "hidden md:flex")}>
         <ChatSidebar
           chats={allChats}
+          instanceName={instance?.name}
+          instanceToken={instance?.token}
           selectedRemoteJid={remoteJid}
           onSelectChat={handleChat}
         />

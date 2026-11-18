@@ -1,5 +1,7 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@evoapi/design-system/avatar";
 import {
+  Archive,
+  ArchiveRestore,
   Camera,
   Check,
   CheckCheck,
@@ -29,6 +31,8 @@ interface ChatListItemProps {
   chat: Chat;
   selected: boolean;
   onClick: () => void;
+  onArchive?: () => void;
+  isArchived?: boolean;
 }
 
 const SnippetIcon = ({ icon }: { icon?: SnippetType["icon"] }) => {
@@ -68,7 +72,13 @@ const StatusTick = ({ status }: { status: number }) => {
   }
 };
 
-export function ChatListItem({ chat, selected, onClick }: ChatListItemProps) {
+export function ChatListItem({
+  chat,
+  selected,
+  onClick,
+  onArchive,
+  isArchived,
+}: ChatListItemProps) {
   const { t, i18n } = useTranslation();
   const locale = i18n.language;
 
@@ -85,92 +95,117 @@ export function ChatListItem({ chat, selected, onClick }: ChatListItemProps) {
   const messageStatus = isFromMe ? getMessageStatus(chat.lastMessage) : 0;
 
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "group flex w-full cursor-pointer items-center gap-3 px-3 py-3 text-left transition-colors duration-150",
-        selected
-          ? "border-l-4 border-l-primary bg-accent/90"
-          : "hover:bg-accent/50 border-b border-border/40",
-      )}
-    >
-      {/* Contact Avatar */}
-      <Avatar className="h-12 w-12 shrink-0 rounded-full border border-border/30">
-        <AvatarImage src={chat.profilePicUrl || undefined} alt={name} />
-        <AvatarFallback className="bg-muted text-muted-foreground">
-          {isGroup ? <Users className="h-6 w-6" /> : <User className="h-6 w-6" />}
-        </AvatarFallback>
-      </Avatar>
+    <div className="group relative">
+      <button
+        type="button"
+        onClick={onClick}
+        className={cn(
+          "flex w-full cursor-pointer items-center gap-3 px-3 py-3 text-left transition-colors duration-150",
+          selected
+            ? "border-l-4 border-l-primary bg-accent/90"
+            : "hover:bg-accent/50 border-b border-border/40",
+        )}
+      >
+        {/* Contact Avatar */}
+        <Avatar className="h-12 w-12 shrink-0 rounded-full border border-border/30">
+          <AvatarImage src={chat.profilePicUrl || undefined} alt={name} />
+          <AvatarFallback className="bg-muted text-muted-foreground">
+            {isGroup ? <Users className="h-6 w-6" /> : <User className="h-6 w-6" />}
+          </AvatarFallback>
+        </Avatar>
 
-      {/* Main Info */}
-      <div className="min-w-0 flex-1">
-        {/* Line 1: Name + Formatted Timestamp */}
-        <div className="flex items-center justify-between gap-1">
-          <p
-            className={cn(
-              "truncate text-sm tracking-tight text-foreground",
-              hasUnread ? "font-semibold" : "font-medium",
-            )}
-          >
-            {name}
-          </p>
-          {formattedTime && (
-            <span
+        {/* Main Info */}
+        <div className="min-w-0 flex-1">
+          {/* Line 1: Name + Formatted Timestamp */}
+          <div className="flex items-center justify-between gap-1">
+            <p
               className={cn(
-                "shrink-0 text-[11px]",
-                hasUnread
-                  ? "font-semibold text-emerald-500 dark:text-emerald-400"
-                  : "text-muted-foreground",
+                "truncate text-sm tracking-tight text-foreground",
+                hasUnread ? "font-semibold" : "font-medium",
               )}
             >
-              {formattedTime}
-            </span>
-          )}
-        </div>
-
-        {/* Line 2: Last Message Snippet + Unread Counter Badge */}
-        <div className="mt-1 flex items-center justify-between gap-2">
-          <div
-            className={cn(
-              "flex min-w-0 flex-1 items-center truncate text-xs",
-              hasUnread
-                ? "font-medium text-foreground"
-                : "text-muted-foreground/90",
-            )}
-          >
-            {isFromMe && <StatusTick status={messageStatus} />}
-            <SnippetIcon icon={snippet.icon} />
-            <span className="truncate">{snippet.text || formatJid(chat.remoteJid)}</span>
-          </div>
-
-          {/* Unread Message Count Badge (WhatsApp Web green badge) */}
-          {hasUnread && (
-            <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-emerald-500 px-1.5 text-[11px] font-bold text-white shadow-xs">
-              {unread > 99 ? "99+" : unread}
-            </span>
-          )}
-        </div>
-
-        {/* Labels Tags */}
-        {chat.labels && chat.labels.length > 0 && (
-          <div className="mt-1.5 flex flex-wrap gap-1">
-            {chat.labels.slice(0, 3).map((lbl, idx) => (
+              {name}
+            </p>
+            {formattedTime && (
               <span
-                key={idx}
-                className="inline-flex items-center rounded-xs border border-primary/20 bg-primary/10 px-1 py-0 text-[10px] font-medium text-primary"
+                className={cn(
+                  "shrink-0 text-[11px]",
+                  hasUnread
+                    ? "font-semibold text-emerald-500 dark:text-emerald-400"
+                    : "text-muted-foreground",
+                )}
               >
-                {lbl}
-              </span>
-            ))}
-            {chat.labels.length > 3 && (
-              <span className="text-[10px] text-muted-foreground">
-                +{chat.labels.length - 3}
+                {formattedTime}
               </span>
             )}
           </div>
-        )}
-      </div>
-    </button>
+
+          {/* Line 2: Last Message Snippet + Unread Counter Badge */}
+          <div className="mt-1 flex items-center justify-between gap-2">
+            <div
+              className={cn(
+                "flex min-w-0 flex-1 items-center truncate text-xs",
+                hasUnread
+                  ? "font-medium text-foreground"
+                  : "text-muted-foreground/90",
+              )}
+            >
+              {isFromMe && <StatusTick status={messageStatus} />}
+              <SnippetIcon icon={snippet.icon} />
+              <span className="truncate">{snippet.text || formatJid(chat.remoteJid)}</span>
+            </div>
+
+            {/* Unread Message Count Badge (WhatsApp Web green badge) */}
+            {hasUnread && (
+              <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-emerald-500 px-1.5 text-[11px] font-bold text-white shadow-xs">
+                {unread > 99 ? "99+" : unread}
+              </span>
+            )}
+          </div>
+
+          {/* Labels Tags */}
+          {chat.labels && chat.labels.length > 0 && (
+            <div className="mt-1.5 flex flex-wrap gap-1">
+              {chat.labels.slice(0, 3).map((lbl, idx) => (
+                <span
+                  key={idx}
+                  className="inline-flex items-center rounded-xs border border-primary/20 bg-primary/10 px-1 py-0 text-[10px] font-medium text-primary"
+                >
+                  {lbl}
+                </span>
+              ))}
+              {chat.labels.length > 3 && (
+                <span className="text-[10px] text-muted-foreground">
+                  +{chat.labels.length - 3}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+      </button>
+
+      {/* Quick Archive / Unarchive hover action button */}
+      {onArchive && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onArchive();
+          }}
+          className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-background/95 p-1.5 text-muted-foreground opacity-0 shadow-xs transition-opacity hover:bg-accent hover:text-foreground group-hover:opacity-100"
+          title={
+            isArchived
+              ? t("chat.archived.unarchive", { defaultValue: "Desarquivar conversa" })
+              : t("chat.archived.archive", { defaultValue: "Arquivar conversa" })
+          }
+        >
+          {isArchived ? (
+            <ArchiveRestore className="h-4 w-4" />
+          ) : (
+            <Archive className="h-4 w-4" />
+          )}
+        </button>
+      )}
+    </div>
   );
 }

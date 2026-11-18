@@ -254,6 +254,20 @@
       "unread": "Unread",
       "favourites": "Favourites",
       "groups": "Groups"
+    },
+    "archived": {
+      "title": "Archived",
+      "notice": "These chats stay archived when new messages are received.",
+      "empty": "No archived chats",
+      "archive": "Archive chat",
+      "unarchive": "Unarchive chat"
+    },
+    "locked": {
+      "title": "Locked chats",
+      "notice": "These chats are kept in a separate, secure space.",
+      "empty": "No locked chats",
+      "lock": "Lock chat",
+      "unlock": "Unlock chat"
     }
   },
   "sidebar": {

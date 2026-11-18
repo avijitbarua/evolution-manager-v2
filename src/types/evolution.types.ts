@@ -65,6 +65,8 @@ export type Chat = {
   unreadCount?: number;
   lastMessage?: Message | null;
   isSaved?: boolean;
+  isArchived?: boolean;
+  isLocked?: boolean;
 };
 
 export type Key = {

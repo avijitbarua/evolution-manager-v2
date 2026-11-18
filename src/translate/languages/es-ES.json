@@ -1629,6 +1629,20 @@
       "unread": "No leídos",
       "favourites": "Favoritos",
       "groups": "Grupos"
+    },
+    "archived": {
+      "title": "Archivados",
+      "notice": "Estos chats permanecen archivados al recibir nuevos mensajes.",
+      "empty": "No hay chats archivados",
+      "archive": "Archivar chat",
+      "unarchive": "Desarchivar chat"
+    },
+    "locked": {
+      "title": "Chats bloqueados",
+      "notice": "Estos chats se mantienen en un espacio reservado y seguro.",
+      "empty": "No hay chats bloqueados",
+      "lock": "Bloquear chat",
+      "unlock": "Desbloquear chat"
     }
   },
   "common": {
