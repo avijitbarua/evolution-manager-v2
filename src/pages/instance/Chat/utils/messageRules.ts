@@ -9,7 +9,7 @@ export const FORTY_EIGHT_HOURS_MS = 48 * 60 * 60 * 1000;
 
 export const canEditMessage = (message: Message): boolean => {
   if (!message.key?.fromMe) return false;
-  if ((message as any).isRevoked || (message as any).isDeleted) return false;
+  if (isMessageRevoked(message)) return false;
 
   // Only text messages can be edited
   const isText =
@@ -25,7 +25,7 @@ export const canEditMessage = (message: Message): boolean => {
 
 export const canDeleteForEveryone = (message: Message): boolean => {
   if (!message.key?.fromMe) return false;
-  if ((message as any).isRevoked || (message as any).isDeleted) return false;
+  if (isMessageRevoked(message)) return false;
 
   const timestamp = getMessageTimestamp(message).getTime();
   const now = Date.now();
@@ -34,18 +34,24 @@ export const canDeleteForEveryone = (message: Message): boolean => {
   return diffMs <= FORTY_EIGHT_HOURS_MS;
 };
 
-export const isMessageEdited = (message: Message): boolean => {
-  return (
-    !!(message as any).isEdited ||
-    !!message.message?.editedMessage ||
-    !!message.message?.protocolMessage?.editedMessage
-  );
+export const isMessageEdited = (message: any): boolean => {
+  if (!message) return false;
+  if (message.isEdited) return true;
+  if (message.status === "EDITED") return true;
+  if (message.message?.editedMessage) return true;
+  if (message.message?.protocolMessage?.editedMessage) return true;
+  if (Array.isArray(message.MessageUpdate)) {
+    return message.MessageUpdate.some((u: any) => u.status === "EDITED");
+  }
+  return false;
 };
 
-export const isMessageRevoked = (message: Message): boolean => {
+export const isMessageRevoked = (message: any): boolean => {
+  if (!message) return false;
   return (
-    !!(message as any).isRevoked ||
-    !!(message as any).isDeleted ||
+    !!message.isRevoked ||
+    !!message.isDeleted ||
+    message.status === "DELETED" ||
     message.messageType === "revoked" ||
     message.message?.protocolMessage?.type === 0 ||
     message.message?.conversation === "Esta mensagem foi apagada"

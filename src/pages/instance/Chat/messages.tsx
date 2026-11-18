@@ -1,4 +1,4 @@
-import { RefObject, useEffect, useMemo, useState } from "react";
+import { RefObject, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 
 import { useInstance } from "@/contexts/InstanceContext";
@@ -25,6 +25,7 @@ import { useChatPresence } from "./hooks/useChatPresence";
 import { useChatReadReceipts } from "./hooks/useChatReadReceipts";
 import { useChatSocket } from "./hooks/useChatSocket";
 import { useVoiceRecorder } from "./hooks/useVoiceRecorder";
+import { isMessageEdited, isMessageRevoked } from "./utils/messageRules";
 
 type MessagesProps = {
   textareaRef: RefObject<HTMLTextAreaElement>;
@@ -44,10 +45,12 @@ function Messages({
   const { instance } = useInstance();
   const { remoteJid } = useParams<{ remoteJid: string }>();
 
+  // Canonical Single State for Chat Messages
+  const [messageList, setMessageList] = useState<Message[]>([]);
+
   const [messageText, setMessageText] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [selectedMedia, setSelectedMedia] = useState<File | null>(null);
-  const [realtimeMessages, setRealtimeMessages] = useState<Message[]>([]);
   const [replyingTo, setReplyingTo] = useState<Message | null>(null);
 
   // Bot & Labels State
@@ -59,7 +62,7 @@ function Messages({
   const [editingMessage, setEditingMessage] = useState<Message | null>(null);
   const [deletingMessage, setDeletingMessage] = useState<Message | null>(null);
 
-  // API Queries & Mutations
+  // API Mutations
   const { sendText: sendTextMutation } = useSendMessage();
   const { sendMedia: sendMediaMutation } = useSendMedia();
   const { sendAudio: sendAudioMutation } = useSendAudio();
@@ -76,42 +79,75 @@ function Messages({
     instanceName: instance?.name,
   });
 
-  const { data: messages, isSuccess } = useFindMessages({
+  const { data: queryMessages, isSuccess } = useFindMessages({
     remoteJid,
     instanceName: instance?.name,
   });
 
-  // Combine query messages with realtime updates
-  const allMessages = useMemo(() => {
-    if (!messages) return realtimeMessages;
+  // Sync React Query messages into canonical messageList
+  useEffect(() => {
+    if (queryMessages && Array.isArray(queryMessages)) {
+      setMessageList((prev) => {
+        const map = new Map<string, Message>();
 
-    const messageMap = new Map<string, Message>();
-    messages.forEach((m) => messageMap.set(m.key.id, m));
-    realtimeMessages.forEach((m) => messageMap.set(m.key.id, m));
+        // First populate with server messages
+        queryMessages.forEach((m) => {
+          const id = m.key?.id || m.id;
+          if (id) map.set(id, m);
+        });
 
-    return Array.from(messageMap.values());
-  }, [messages, realtimeMessages]);
+        // Merge and preserve any active local overrides (edits, sent messages, reactions, status updates)
+        prev.forEach((m) => {
+          const id = m.key?.id || m.id;
+          if (!id) return;
 
-  // Hook 1: Presence (Composing / Recording)
+          const serverMsg = map.get(id);
+          if (serverMsg) {
+            const anyM = m as any;
+            const anyServer = serverMsg as any;
+            map.set(id, {
+              ...serverMsg,
+              ...m,
+              message: anyM.isEdited ? m.message : serverMsg.message,
+              status:
+                m.status !== undefined && m.status !== "PENDING" && m.status !== 1
+                  ? m.status
+                  : serverMsg.status,
+              isEdited: anyM.isEdited || isMessageEdited(serverMsg),
+              isRevoked: anyM.isRevoked || isMessageRevoked(serverMsg),
+              reactions: anyM.reactions?.length ? anyM.reactions : anyServer.reactions,
+            } as Message);
+          } else {
+            // Keep locally added messages (e.g. optimistic or newly received via socket)
+            map.set(id, m);
+          }
+        });
+
+        return Array.from(map.values());
+      });
+    }
+  }, [queryMessages]);
+
+  // Hook 1: Real-time Presence
   const { contactPresence, notifyTyping, notifyPaused } = useChatPresence({
     instanceName: instance?.name,
     instanceToken: instance?.token,
     remoteJid,
   });
 
-  // Hook 2: Socket (Messages upsert, reactions, status updates, revokes)
+  // Hook 2: Socket with instant messageList updates (status, upsert, edit, delete, reactions)
   useChatSocket({
     instanceName: instance?.name,
     remoteJid,
-    setRealtimeMessages,
+    setMessageList,
   });
 
-  // Hook 3: Read Receipts (WhatsApp Web seen / mark as read)
+  // Hook 3: WhatsApp Web Read Receipts (Seen / Mark as Read)
   useChatReadReceipts({
     instanceName: instance?.name,
     instanceToken: instance?.token,
     remoteJid,
-    messages: allMessages,
+    messages: messageList,
   });
 
   // Sync Chat Labels from query
@@ -129,19 +165,19 @@ function Messages({
       .catch((e) => console.warn("Failed to load labels:", e));
   }, [instance?.name, instance?.token]);
 
-  // Scroll to bottom on load / message arrival
+  // Auto-scroll on initial load or new messages
   useEffect(() => {
-    if (isSuccess && allMessages.length > 0) {
+    if (isSuccess && messageList.length > 0) {
       scrollToBottom();
     }
-  }, [isSuccess, allMessages.length, scrollToBottom]);
+  }, [isSuccess, messageList.length, scrollToBottom]);
 
-  // Reset state when switching chats
+  // Reset chat input state on chat switch
   useEffect(() => {
     setSelectedMedia(null);
     setMessageText("");
     setReplyingTo(null);
-    setRealtimeMessages([]);
+    setMessageList([]);
     if (textareaRef.current) {
       textareaRef.current.value = "";
       handleTextareaChange();
@@ -152,9 +188,33 @@ function Messages({
   const handleSendAudio = async (base64Audio: string) => {
     if (!instance?.name || !instance?.token || !remoteJid) return;
 
+    const tempId = `temp-${Date.now()}`;
+    const optimisticAudio: Message = {
+      id: tempId,
+      key: {
+        id: tempId,
+        fromMe: true,
+        remoteJid,
+      },
+      pushName: "Você",
+      messageType: "audioMessage",
+      message: {
+        audioMessage: {
+          audio: base64Audio,
+        },
+        base64: base64Audio,
+      },
+      messageTimestamp: String(Math.floor(Date.now() / 1000)),
+      instanceId: instance.id || "",
+      source: "web",
+      status: 1, // Pending (Clock)
+    };
+
+    setMessageList((prev) => [...prev, optimisticAudio]);
+
     try {
       setIsSending(true);
-      await sendAudioMutation({
+      const res = await sendAudioMutation({
         instanceName: instance.name,
         token: instance.token,
         data: {
@@ -167,7 +227,25 @@ function Messages({
           encoding: true,
         },
       });
+
+      const realMsg = res?.data || res;
+      if (realMsg?.key?.id) {
+        setMessageList((prev) =>
+          prev.map((m) =>
+            m.key?.id === tempId
+              ? {
+                  ...m,
+                  id: realMsg.key.id,
+                  key: realMsg.key,
+                  status: realMsg.status || 2, // Sent (Single check ✓)
+                }
+              : m,
+          ),
+        );
+      }
       setReplyingTo(null);
+    } catch (error) {
+      console.error("Error sending voice note:", error);
     } finally {
       setIsSending(false);
     }
@@ -187,38 +265,86 @@ function Messages({
     onSendAudio: handleSendAudio,
   });
 
-  // Send Text Message
+  // Send Text Message Handler with Instant Optimistic UI
   const sendTextMessage = async () => {
-    if (!messageText.trim() || !remoteJid || !instance?.name || !instance?.token || isSending)
+    const textToSend = messageText.trim();
+    if (!textToSend || !remoteJid || !instance?.name || !instance?.token || isSending)
       return;
+
+    const tempId = `temp-${Date.now()}`;
+    const optimisticMsg: Message = {
+      id: tempId,
+      key: {
+        id: tempId,
+        fromMe: true,
+        remoteJid,
+      },
+      pushName: "Você",
+      messageType: "conversation",
+      message: {
+        conversation: textToSend,
+        contextInfo: replyingTo
+          ? {
+              participant: replyingTo.key?.participant || (replyingTo.key?.fromMe ? "Você" : remoteJid),
+              stanzaId: replyingTo.key?.id,
+              quotedMessage: replyingTo.message,
+            }
+          : undefined,
+      },
+      messageTimestamp: String(Math.floor(Date.now() / 1000)),
+      instanceId: instance.id || "",
+      source: "web",
+      status: 1, // Pending (Clock 🕒)
+    };
+
+    // Instant UI insertion
+    setMessageList((prev) => [...prev, optimisticMsg]);
+    setMessageText("");
+    const quotedToSend = replyingTo;
+    setReplyingTo(null);
+
+    if (textareaRef.current) {
+      textareaRef.current.value = "";
+      handleTextareaChange();
+    }
+    notifyPaused();
 
     try {
       setIsSending(true);
       const payload: any = {
         number: remoteJid,
-        text: messageText.trim(),
+        text: textToSend,
       };
 
-      if (replyingTo) {
+      if (quotedToSend) {
         payload.quoted = {
-          key: replyingTo.key,
-          message: replyingTo.message,
+          key: quotedToSend.key,
+          message: quotedToSend.message,
         };
       }
 
-      await sendTextMutation({
+      const res = await sendTextMutation({
         instanceName: instance.name,
         token: instance.token,
         data: payload,
       });
 
-      setMessageText("");
-      setReplyingTo(null);
-      if (textareaRef.current) {
-        textareaRef.current.value = "";
-        handleTextareaChange();
+      // Update from pending clock (1) to sent single check (2) immediately!
+      const realMsg = res?.data || res;
+      if (realMsg?.key?.id) {
+        setMessageList((prev) =>
+          prev.map((m) =>
+            m.key?.id === tempId
+              ? {
+                  ...m,
+                  id: realMsg.key.id,
+                  key: realMsg.key,
+                  status: realMsg.status || 2, // Sent (Single check ✓)
+                }
+              : m,
+          ),
+        );
       }
-      notifyPaused();
     } catch (error) {
       console.error("Error sending message:", error);
     } finally {
@@ -226,7 +352,7 @@ function Messages({
     }
   };
 
-  // Send Media Message
+  // Send Media Message Handler
   const sendMediaMessage = async () => {
     if (!selectedMedia || !remoteJid || !instance?.name || !instance?.token || isSending)
       return;
@@ -307,7 +433,7 @@ function Messages({
     notifyTyping(text);
   };
 
-  // Reactions Handler
+  // Instant Reactions Handler
   const handleSendReaction = async (targetMessage: Message, emoji: string) => {
     if (!instance?.name || !targetMessage.key) return;
 
@@ -315,16 +441,18 @@ function Messages({
     const hasSame = existing.some((r: any) => r.text === emoji && r.fromMe);
     const reactionToSend = hasSame ? "" : emoji;
 
-    // Optimistic UI Update
-    setRealtimeMessages((prev) =>
+    // Instant in-memory update
+    setMessageList((prev) =>
       prev.map((m) => {
-        if (m.key.id === targetMessage.key.id) {
+        const mId = m.key?.id || m.id;
+        const targetId = targetMessage.key?.id || targetMessage.id;
+        if (mId === targetId) {
           const current = (m as any).reactions || [];
           const filtered = current.filter((r: any) => !r.fromMe);
-          const nextReactions = reactionToSend
+          const next = reactionToSend
             ? [...filtered, { text: reactionToSend, fromMe: true, sender: "Você" }]
             : filtered;
-          return { ...m, reactions: nextReactions };
+          return { ...m, reactions: next };
         }
         return m;
       }),
@@ -342,55 +470,76 @@ function Messages({
     }
   };
 
-  // Edit Message Handler
+  // Instant Edit Message Handler (Updates UI Immediately + Shows Edited tag!)
   const handleSaveEdit = async (message: Message, newText: string) => {
     if (!instance?.name || !remoteJid) return;
 
-    await updateMessage({
-      instanceName: instance.name,
-      token: instance.token,
-      number: remoteJid,
-      key: message.key,
-      text: newText,
-    });
+    const targetId = message.key?.id || message.id;
 
-    setRealtimeMessages((prev) =>
-      prev.map((m) =>
-        m.key.id === message.key.id
-          ? {
-              ...m,
-              message: { conversation: newText },
-              isEdited: true,
-            }
-          : m,
-      ),
+    // 1. Instant local update (Shows new text + (edited) badge immediately!)
+    setMessageList((prev) =>
+      prev.map((m) => {
+        const mId = m.key?.id || m.id;
+        if (mId === targetId) {
+          return {
+            ...m,
+            message: { conversation: newText, text: newText },
+            status: "EDITED",
+            isEdited: true,
+          };
+        }
+        return m;
+      }),
     );
+
+    // 2. Transmit edit to WhatsApp backend
+    try {
+      await updateMessage({
+        instanceName: instance.name,
+        token: instance.token,
+        number: remoteJid,
+        key: message.key,
+        text: newText,
+      });
+    } catch (err) {
+      console.error("Error editing message:", err);
+    }
   };
 
-  // Delete for Everyone Handler
+  // Instant Delete for Everyone Handler
   const handleConfirmDelete = async (message: Message) => {
     if (!instance?.name || !remoteJid) return;
 
-    await deleteMessage({
-      instanceName: instance.name,
-      token: instance.token,
-      id: message.key.id,
-      remoteJid: message.key.remoteJid || remoteJid,
-      fromMe: true,
-      participant: message.key.participant,
-    });
+    const targetId = message.key?.id || message.id;
 
-    setRealtimeMessages((prev) =>
-      prev.map((m) =>
-        m.key.id === message.key.id
-          ? {
-              ...m,
-              isRevoked: true,
-              message: { conversation: "Esta mensagem foi apagada" },
-            }
-          : m,
-      ),
+    // 1. Instant local update
+    setMessageList((prev) =>
+      prev.map((m) => {
+        const mId = m.key?.id || m.id;
+        if (mId === targetId) {
+          return {
+            ...m,
+            isRevoked: true,
+            message: { conversation: "Esta mensagem foi apagada" },
+          };
+        }
+        return m;
+      }),
     );
+
+    // 2. Transmit revoke to WhatsApp backend
+    try {
+      await deleteMessage({
+        instanceName: instance.name,
+        token: instance.token,
+        id: message.key.id,
+        remoteJid: message.key.remoteJid || remoteJid,
+        fromMe: true,
+        participant: message.key.participant,
+      });
+    } catch (err) {
+      console.error("Error deleting message:", err);
+    }
   };
 
   // Toggle Bot Status
@@ -438,7 +587,7 @@ function Messages({
 
   return (
     <div className="flex h-full flex-col bg-muted/10">
-      {/* Modular Header */}
+      {/* Header */}
       <ChatHeader
         chat={chat}
         remoteJid={remoteJid || ""}
@@ -450,9 +599,9 @@ function Messages({
         onToggleLabel={handleToggleLabel}
       />
 
-      {/* Modular Message Stream */}
+      {/* Message List */}
       <MessageList
-        messages={allMessages}
+        messages={messageList}
         remoteJid={remoteJid || ""}
         lastMessageRef={lastMessageRef}
         onReact={handleSendReaction}
@@ -461,7 +610,7 @@ function Messages({
         onDelete={(msg) => setDeletingMessage(msg)}
       />
 
-      {/* Modular Input Bar */}
+      {/* Input Bar */}
       <ChatInputBar
         instance={instance}
         messageText={messageText}

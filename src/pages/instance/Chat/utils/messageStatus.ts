@@ -2,36 +2,53 @@ import { Message } from "@/types/evolution.types";
 
 /**
  * WhatsApp message status enum:
- * 1: PENDING (Clock)
- * 2: SERVER_ACK (Single Check - Sent)
- * 3: DELIVERY_ACK (Double Gray Check - Delivered)
- * 4: READ (Double Blue Check - Seen)
- * 5: PLAYED (Double Blue Check - Played audio)
+ * 1: PENDING (Clock - sending)
+ * 2: SERVER_ACK (Single Check - Sent to WhatsApp server)
+ * 3: DELIVERY_ACK (Double Gray Check - Delivered to recipient)
+ * 4: READ (Double Blue Check - Seen/Read by recipient)
+ * 5: PLAYED (Double Blue Check - Played audio voice note)
  */
 export const getMessageStatus = (message: any): number => {
-  // If MessageUpdate array exists from database query
+  if (!message) return 0;
+
+  let highest = 0;
+
+  // Check MessageUpdate history array from database if present
   if (Array.isArray(message.MessageUpdate) && message.MessageUpdate.length > 0) {
-    for (let i = message.MessageUpdate.length - 1; i >= 0; i--) {
-      const uStatus = message.MessageUpdate[i]?.status;
-      const uNum = typeof uStatus === "number" ? uStatus : parseInt(uStatus, 10);
-      if (uStatus === "READ" || uStatus === "PLAYED" || uNum === 4 || uNum === 5) return 4;
-      if (uStatus === "DELIVERY_ACK" || uNum === 3) return 3;
-      if (uStatus === "SERVER_ACK" || uNum === 2) return 2;
-      if (uStatus === "PENDING" || uNum === 1) return 1;
+    for (const update of message.MessageUpdate) {
+      const u = update?.status;
+      const uNum = typeof u === "number" ? u : parseInt(u, 10);
+      if (u === "READ" || u === "PLAYED" || uNum === 4 || uNum === 5) {
+        highest = Math.max(highest, 4);
+      } else if (u === "DELIVERY_ACK" || uNum === 3) {
+        highest = Math.max(highest, 3);
+      } else if (u === "SERVER_ACK" || uNum === 2) {
+        highest = Math.max(highest, 2);
+      } else if (u === "PENDING" || uNum === 1) {
+        highest = Math.max(highest, 1);
+      }
     }
   }
 
+  // Check direct message status property
   const raw = message.status;
   const sNum = typeof raw === "number" ? raw : parseInt(raw, 10);
 
-  if (raw === "READ" || raw === "PLAYED" || sNum === 4 || sNum === 5) return 4;
-  if (raw === "DELIVERY_ACK" || sNum === 3) return 3;
-  if (raw === "SERVER_ACK" || sNum === 2) return 2;
-  if (raw === "PENDING" || sNum === 1) return 1;
+  if (raw === "READ" || raw === "PLAYED" || sNum === 4 || sNum === 5) {
+    highest = Math.max(highest, 4);
+  } else if (raw === "DELIVERY_ACK" || sNum === 3) {
+    highest = Math.max(highest, 3);
+  } else if (raw === "SERVER_ACK" || sNum === 2) {
+    highest = Math.max(highest, 2);
+  } else if (raw === "PENDING" || sNum === 1) {
+    highest = Math.max(highest, 1);
+  }
 
-  // If fromMe and present in chat history, it was acknowledged by server!
+  if (highest > 0) return highest;
+
+  // If outgoing message fromMe and exists in chat history, it was acknowledged by server at least
   if (message.key?.fromMe) {
-    return 2; // Server Ack (Single check) at minimum if it reached database
+    return 2; // Sent (single check ✓)
   }
 
   return 0;
@@ -52,7 +69,9 @@ export const getMessageTimestamp = (message: Message): Date => {
         (message.messageTimestamp as any).value,
       ];
 
-      const timestamp = possibleTimestamps.find((val) => typeof val === "number" && !isNaN(val)) || Date.now() / 1000;
+      const timestamp =
+        possibleTimestamps.find((val) => typeof val === "number" && !isNaN(val)) ||
+        Date.now() / 1000;
       return new Date(timestamp * 1000);
     } else if (!isNaN(Number(message.messageTimestamp))) {
       const timestamp = Number(message.messageTimestamp);
@@ -61,7 +80,10 @@ export const getMessageTimestamp = (message: Message): Date => {
       } else {
         return new Date(timestamp * 1000);
       }
-    } else if (typeof message.messageTimestamp === "string" && message.messageTimestamp.includes("T")) {
+    } else if (
+      typeof message.messageTimestamp === "string" &&
+      message.messageTimestamp.includes("T")
+    ) {
       return new Date(message.messageTimestamp);
     }
 

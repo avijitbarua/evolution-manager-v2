@@ -108,8 +108,8 @@ export function MessageBubble({
           }`}
         >
           {edited && (
-            <span className="text-[10px] italic">
-              ({t("chat.edited", { defaultValue: "editada" })})
+            <span className="text-[10px] font-medium text-muted-foreground/85">
+              {t("chat.edited", { defaultValue: "edited" })} •
             </span>
           )}
           <span>{formatMessageTime(getMessageTimestamp(message), locale)}</span>

@@ -20,18 +20,26 @@ export function useChatReadReceipts({
   useEffect(() => {
     if (!instanceName || !remoteJid || messages.length === 0) return;
 
-    // Filter incoming unread messages
+    // Format destination JID to ensure compatibility with Baileys isPnUser / isJidGroup
+    const cleanJid = remoteJid.includes("@")
+      ? remoteJid.endsWith("@lid")
+        ? remoteJid.split("@")[0] + "@s.whatsapp.net"
+        : remoteJid
+      : `${remoteJid}@s.whatsapp.net`;
+
+    // Filter incoming unread messages that haven't been marked yet
     const unreadKeys = messages
       .filter((m) => {
         if (m.key?.fromMe) return false;
-        if (!m.key?.id) return false;
-        if (markedMessageIdsRef.current.has(m.key.id)) return false;
+        const id = m.key?.id || m.id;
+        if (!id) return false;
+        if (markedMessageIdsRef.current.has(id)) return false;
         return true;
       })
       .map((m) => ({
-        id: m.key.id,
+        id: m.key?.id || m.id,
         fromMe: false,
-        remoteJid: m.key.remoteJid || remoteJid,
+        remoteJid: cleanJid,
       }));
 
     if (unreadKeys.length > 0) {
@@ -45,7 +53,7 @@ export function useChatReadReceipts({
     }
   }, [instanceName, instanceToken, remoteJid, messages]);
 
-  // Reset when remoteJid changes
+  // Reset tracking when switching active chat
   useEffect(() => {
     markedMessageIdsRef.current.clear();
   }, [remoteJid]);
