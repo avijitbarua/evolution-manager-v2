@@ -1643,6 +1643,18 @@
       "empty": "No hay chats bloqueados",
       "lock": "Bloquear chat",
       "unlock": "Desbloquear chat"
+    },
+    "media": {
+      "loading": "Cargando...",
+      "preview": "Vista previa",
+      "download": "Descargar",
+      "retry": "Reintentar",
+      "downloadFailed": "Error al cargar multimedia",
+      "voiceNote": "Mensaje de voz",
+      "audio": "Audio",
+      "image": "Foto",
+      "video": "Video",
+      "document": "Documento"
     }
   },
   "common": {

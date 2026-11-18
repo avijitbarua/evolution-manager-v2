@@ -41,6 +41,7 @@ export function MessageBubble({
   const quoted = getQuotedInfo(message);
   const reactions = (message as any).reactions || [];
   const edited = isMessageEdited(message);
+  const isSticker = message.messageType === "stickerMessage";
 
   return (
     <div
@@ -73,10 +74,14 @@ export function MessageBubble({
 
         {/* Bubble Surface */}
         <div
-          className={`rounded-lg px-3 py-2 text-sm shadow-xs ${
-            isFromMe
-              ? "bg-primary text-primary-foreground"
-              : "border border-border/60 bg-muted text-foreground"
+          className={`rounded-lg text-sm ${
+            isSticker
+              ? "p-0 bg-transparent shadow-none"
+              : `px-3 py-2 shadow-xs ${
+                  isFromMe
+                    ? "bg-primary text-primary-foreground"
+                    : "border border-border/60 bg-muted text-foreground"
+                }`
           }`}
         >
           {/* Quoted Message preview */}

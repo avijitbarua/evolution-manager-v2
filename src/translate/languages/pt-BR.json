@@ -1643,6 +1643,18 @@
       "empty": "Nenhuma conversa bloqueada",
       "lock": "Bloquear conversa",
       "unlock": "Desbloquear conversa"
+    },
+    "media": {
+      "loading": "Carregando...",
+      "preview": "Visualização",
+      "download": "Baixar",
+      "retry": "Tentar novamente",
+      "downloadFailed": "Falha ao carregar mídia",
+      "voiceNote": "Mensagem de voz",
+      "audio": "Áudio",
+      "image": "Foto",
+      "video": "Vídeo",
+      "document": "Documento"
     }
   },
   "common": {
