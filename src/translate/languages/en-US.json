@@ -63,13 +63,13 @@
         "closed": "Closed"
       },
       "timeOptions": {
-        "all": "Any time",
         "5": "Last 5 minutes",
         "10": "Last 10 minutes",
         "15": "Last 15 minutes",
         "20": "Last 20 minutes",
         "30": "Last 30 minutes",
         "60": "Last 60 minutes",
+        "all": "Any time",
         ">60": "More than 60 minutes",
         ">120": "More than 2 hours",
         ">300": "More than 5 hours",
@@ -248,7 +248,13 @@
       "delivered": "Delivered",
       "read": "Read"
     },
-    "edited": "edited"
+    "edited": "edited",
+    "filters": {
+      "all": "All",
+      "unread": "Unread",
+      "favourites": "Favourites",
+      "groups": "Groups"
+    }
   },
   "sidebar": {
     "dashboard": "Dashboard",

@@ -55,13 +55,16 @@ export type Contact = {
 
 export type Chat = {
   id: string;
-  pushName: string;
+  pushName?: string | null;
   remoteJid: string;
   labels: string[] | null;
-  profilePicUrl: string;
-  createdAt: string;
-  updatedAt: string;
-  instanceId: string;
+  profilePicUrl?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+  instanceId?: string;
+  unreadCount?: number;
+  lastMessage?: Message | null;
+  isSaved?: boolean;
 };
 
 export type Key = {

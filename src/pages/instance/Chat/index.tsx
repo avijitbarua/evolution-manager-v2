@@ -1,29 +1,20 @@
 import "./style.css";
-import { Avatar, AvatarFallback, AvatarImage } from "@evoapi/design-system/avatar";
 import { Button } from "@evoapi/design-system/button";
-import { Input } from "@/components/ui/input";
-import { ArrowLeft, MessageCircle, Search, User, Users } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ArrowLeft, MessageCircle } from "lucide-react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
 
 import { useInstance } from "@/contexts/InstanceContext";
-
 import { useFindChats } from "@/lib/queries/chat/findChats";
-import { getToken, TOKEN_ID } from "@/lib/queries/token";
 import { cn } from "@/lib/utils";
-
-import { connectSocket, disconnectSocket } from "@/services/websocket/socket";
-
 import { Chat as ChatType } from "@/types/evolution.types";
-
 import { useMediaQuery } from "@/utils/useMediaQuery";
 
+import { ChatSidebar } from "./components/sidebar/ChatSidebar";
+import { useChatListSocket } from "./hooks/useChatListSocket";
 import { Messages } from "./messages";
-
-const formatJid = (remoteJid: string): string => remoteJid.split("@")[0];
-
-type ChatKind = "contacts" | "groups";
+import { sortChatsByLatest } from "./utils/chatListUtils";
 
 function Chat() {
   const { t } = useTranslation();
@@ -34,67 +25,34 @@ function Chat() {
   const { instance } = useInstance();
 
   const [realtimeChats, setRealtimeChats] = useState<ChatType[]>([]);
-  const [search, setSearch] = useState("");
-  const [kind, setKind] = useState<ChatKind>("contacts");
 
   const { data: chats } = useFindChats({ instanceName: instance?.name });
-
-  const allChats = useMemo(() => {
-    if (!chats) return realtimeChats;
-    const map = new Map<string, ChatType>();
-    chats.forEach((c) => map.set(c.remoteJid, c));
-    realtimeChats.forEach((c) => {
-      const existing = map.get(c.remoteJid);
-      map.set(c.remoteJid, existing ? { ...existing, ...c } : c);
-    });
-    return Array.from(map.values());
-  }, [chats, realtimeChats]);
 
   const { instanceId, remoteJid } = useParams<{ instanceId: string; remoteJid: string }>();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    if (!instance?.name) return;
-    const serverUrl = getToken(TOKEN_ID.API_URL);
-    if (!serverUrl) return;
+  // Socket listener for real-time messages & instant chat list reordering
+  useChatListSocket({
+    instanceName: instance?.name,
+    currentRemoteJid: remoteJid,
+    setRealtimeChats,
+  });
 
-    const socket = connectSocket(serverUrl);
+  // Merge server chats with realtime updates and sort by latest activity
+  const allChats = useMemo(() => {
+    const map = new Map<string, ChatType>();
 
-    const handle = (data: { instance?: string; data?: { key?: { remoteJid?: string; remoteJidAlt?: string; profilePictureUrl?: string }; pushName?: string } }) => {
-      if (!instance || data.instance !== instance.name) return;
-      const jid = data?.data?.key?.remoteJid;
-      const altJid = data?.data?.key?.remoteJidAlt;
-      if (!jid) return;
+    if (chats && Array.isArray(chats)) {
+      chats.forEach((c) => map.set(c.remoteJid, c));
+    }
 
-      setRealtimeChats((prev) => {
-        const idx = prev.findIndex((c) => c.remoteJid === jid || (altJid && c.remoteJid === altJid));
-        const obj = {
-          id: jid,
-          remoteJid: jid,
-          pushName: data?.data?.pushName || formatJid(jid),
-          profilePicUrl: data?.data?.key?.profilePictureUrl || "",
-          ...(data?.data as Partial<ChatType>),
-          labels: ((data?.data as Partial<ChatType> | undefined)?.labels) ?? null,
-        } as ChatType;
-        if (idx !== -1) {
-          const next = [...prev];
-          next[idx] = { ...next[idx], ...obj };
-          return next;
-        }
-        return [...prev, obj];
-      });
-    };
+    realtimeChats.forEach((c) => {
+      const existing = map.get(c.remoteJid);
+      map.set(c.remoteJid, existing ? { ...existing, ...c } : c);
+    });
 
-    socket.on("messages.upsert", handle);
-    socket.on("send.message", handle);
-    socket.connect();
-
-    return () => {
-      socket.off("messages.upsert");
-      socket.off("send.message");
-      disconnectSocket(socket);
-    };
-  }, [instance, instance?.name]);
+    return sortChatsByLatest(Array.from(map.values()));
+  }, [chats, realtimeChats]);
 
   const scrollToBottom = useCallback(() => {
     lastMessageRef.current?.scrollIntoView({});
@@ -109,143 +67,31 @@ function Chat() {
     textareaRef.current.style.height = `${Math.min(scrollHeight, maxHeight)}px`;
   };
 
-  const handleChat = (jid: string) => navigate(`/manager/instance/${instanceId}/chat/${jid}`);
+  const handleChat = (jid: string) => {
+    // Clear unread count optimistically when opening the chat
+    setRealtimeChats((prev) =>
+      prev.map((c) => (c.remoteJid === jid ? { ...c, unreadCount: 0 } : c)),
+    );
+    navigate(`/manager/instance/${instanceId}/chat/${jid}`);
+  };
 
   const handleBack = () => navigate(`/manager/instance/${instanceId}/chat`);
-
-  const visibleChats = useMemo(() => {
-    const isContacts = kind === "contacts";
-    const filtered = allChats.filter((c) =>
-      isContacts ? c.remoteJid.includes("@s.whatsapp.net") : c.remoteJid.includes("@g.us"),
-    );
-    if (!search.trim()) return filtered;
-    const q = search.toLowerCase();
-    return filtered.filter(
-      (c) =>
-        (c.pushName && c.pushName.toLowerCase().includes(q)) ||
-        c.remoteJid.toLowerCase().includes(q),
-    );
-  }, [allChats, kind, search]);
 
   const showSidebar = !remoteJid || isMD;
   const showChat = !!remoteJid;
 
   return (
-    <div className="flex h-full w-full overflow-hidden rounded-lg border">
-      <aside
-        className={cn(
-          "flex w-full flex-col border-r bg-card/50 md:w-80 md:flex-shrink-0",
-          showSidebar ? "flex" : "hidden md:flex",
-        )}
-      >
-        <div className="space-y-3 border-b p-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder={t("chat.search")}
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9"
-            />
-          </div>
+    <div className="flex h-full w-full overflow-hidden rounded-lg border bg-background shadow-xs">
+      {/* WhatsApp Web Left Sidebar */}
+      <div className={cn("h-full", showSidebar ? "flex w-full md:w-auto" : "hidden md:flex")}>
+        <ChatSidebar
+          chats={allChats}
+          selectedRemoteJid={remoteJid}
+          onSelectChat={handleChat}
+        />
+      </div>
 
-          <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              size="sm"
-              variant={kind === "contacts" ? "secondary" : "ghost"}
-              className="h-8"
-              onClick={() => setKind("contacts")}
-            >
-              <User className="mr-1 h-4 w-4" />
-              {t("chat.tabs.contacts")}
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant={kind === "groups" ? "secondary" : "ghost"}
-              className="h-8"
-              onClick={() => setKind("groups")}
-            >
-              <Users className="mr-1 h-4 w-4" />
-              {t("chat.tabs.groups")}
-            </Button>
-          </div>
-
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-muted-foreground">
-              {t("chat.count", { count: visibleChats.length })}
-            </span>
-          </div>
-        </div>
-
-        <div className="flex-1 overflow-y-auto">
-          {visibleChats.length === 0 ? (
-            <div className="flex h-full flex-col items-center justify-center p-6 text-center">
-              <MessageCircle className="mb-3 h-10 w-10 text-muted-foreground/50" />
-              <p className="text-sm font-medium text-muted-foreground">
-                {search ? t("chat.empty.search") : t("chat.empty.default")}
-              </p>
-              {search && <p className="mt-1 text-xs text-muted-foreground">{t("chat.empty.tryAnother")}</p>}
-            </div>
-          ) : (
-            visibleChats.map((chat) => {
-              const selected = remoteJid === chat.remoteJid;
-              const name = chat.pushName || formatJid(chat.remoteJid);
-
-              return (
-                <button
-                  key={chat.remoteJid}
-                  type="button"
-                  onClick={() => handleChat(chat.remoteJid)}
-                  className={cn(
-                    "block w-full cursor-pointer p-4 text-left transition-colors",
-                    selected
-                      ? "border-l-2 border-l-primary bg-primary/10"
-                      : "border-b border-border/50 hover:bg-accent",
-                  )}
-                >
-                  <div className="flex items-start gap-3">
-                    <Avatar className="h-10 w-10 flex-shrink-0">
-                      <AvatarImage src={chat.profilePicUrl} alt={name} />
-                      <AvatarFallback className="bg-muted text-muted-foreground">
-                        {kind === "groups" ? <Users className="h-5 w-5" /> : <User className="h-5 w-5" />}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="min-w-0 flex-1">
-                      <div className="mb-0.5 flex items-center justify-between gap-2">
-                        <p className="truncate font-medium">{name}</p>
-                      </div>
-                      <p className="truncate text-sm text-muted-foreground">
-                        {formatJid(chat.remoteJid)}
-                      </p>
-                      {chat.labels && chat.labels.length > 0 && (
-                        <div className="mt-1 flex flex-wrap gap-1">
-                          {chat.labels.slice(0, 3).map((lbl, idx) => (
-                            <span
-                              key={idx}
-                              className="inline-flex items-center rounded-xs border border-primary/20 bg-primary/10 px-1 py-0 text-[10px] font-medium text-primary"
-                            >
-                              {lbl}
-                            </span>
-                          ))}
-                          {chat.labels.length > 3 && (
-                            <span className="text-[10px] text-muted-foreground">
-                              +{chat.labels.length - 3}
-                            </span>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </button>
-              );
-            })
-          )}
-        </div>
-      </aside>
-
+      {/* WhatsApp Web Conversation Screen */}
       <main
         className={cn(
           "flex h-full min-h-0 flex-1 flex-col overflow-hidden",
@@ -258,7 +104,7 @@ function Chat() {
               <div className="flex items-center border-b bg-background/95 p-2 backdrop-blur-sm">
                 <Button variant="ghost" size="sm" onClick={handleBack}>
                   <ArrowLeft className="mr-1 h-4 w-4" />
-                  {t("chat.back")}
+                  {t("chat.back", { defaultValue: "Voltar" })}
                 </Button>
               </div>
             )}
@@ -271,14 +117,18 @@ function Chat() {
             />
           </>
         ) : (
-          <div className="flex h-full flex-1 items-center justify-center p-8">
-            <div className="text-center">
-              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-muted">
-                <MessageCircle className="h-8 w-8 text-muted-foreground" />
+          <div className="flex h-full flex-1 items-center justify-center p-8 bg-muted/5">
+            <div className="text-center max-w-sm">
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-muted/60">
+                <MessageCircle className="h-8 w-8 text-muted-foreground/70" />
               </div>
-              <h3 className="mb-1 text-lg font-semibold">{t("chat.empty.selectTitle")}</h3>
+              <h3 className="mb-1 text-lg font-semibold text-foreground">
+                {t("chat.empty.selectTitle", { defaultValue: "Select a conversation" })}
+              </h3>
               <p className="text-sm text-muted-foreground">
-                {t("chat.empty.selectDescription")}
+                {t("chat.empty.selectDescription", {
+                  defaultValue: "Choose a contact or group from the list to start chatting.",
+                })}
               </p>
             </div>
           </div>

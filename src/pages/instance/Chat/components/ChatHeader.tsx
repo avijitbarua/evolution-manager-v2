@@ -44,7 +44,7 @@ export function ChatHeader({
         {/* Contact Info & Live Presence */}
         <div className="flex min-w-0 items-center gap-3">
           <Avatar className="h-10 w-10 flex-shrink-0">
-            <AvatarImage src={chat?.profilePicUrl} alt={headerName} />
+            <AvatarImage src={chat?.profilePicUrl || undefined} alt={headerName} />
             <AvatarFallback className="bg-muted text-muted-foreground">
               <User className="h-5 w-5" />
             </AvatarFallback>
