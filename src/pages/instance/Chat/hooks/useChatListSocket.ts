@@ -115,10 +115,43 @@ export function useChatListSocket({
       });
     };
 
+    // Handle contact updates (profile picture, pushName)
+    const handleContactUpdate = (data: any) => {
+      if (data.instance !== instanceName) return;
+      const update = data?.data;
+      if (!update) return;
+
+      const items = Array.isArray(update) ? update : [update];
+
+      setRealtimeChats((prev) => {
+        let hasChanges = false;
+        const next = prev.map((chat) => {
+          for (const item of items) {
+            const jid = item.remoteJid || item.id;
+            const cleanJid = jid ? jid.split("@")[0] : "";
+            const cleanChat = chat.remoteJid.split("@")[0];
+
+            if (jid && (chat.remoteJid === jid || cleanChat === cleanJid)) {
+              hasChanges = true;
+              return {
+                ...chat,
+                pushName: item.pushName || item.name || chat.pushName,
+                profilePicUrl: item.profilePicUrl || chat.profilePicUrl,
+              };
+            }
+          }
+          return chat;
+        });
+
+        return hasChanges ? next : prev;
+      });
+    };
+
     socket.on("messages.upsert", handleNewMessage);
     socket.on("send.message", handleNewMessage);
     socket.on("messages.update", handleMessageUpdate);
     socket.on("send.message.update", handleMessageUpdate);
+    socket.on("contacts.update", handleContactUpdate);
     socket.connect();
 
     return () => {
@@ -126,6 +159,7 @@ export function useChatListSocket({
       socket.off("send.message");
       socket.off("messages.update");
       socket.off("send.message.update");
+      socket.off("contacts.update");
       disconnectSocket(socket);
     };
   }, [instanceName, currentRemoteJid]);
