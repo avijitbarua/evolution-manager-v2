@@ -1570,7 +1570,60 @@
     "date": {
       "today": "Hoy",
       "yesterday": "Ayer"
-    }
+    },
+    "audio": {
+      "recording": "Grabando mensaje de voz...",
+      "cancel": "Cancelar grabación",
+      "send": "Enviar mensaje de voz",
+      "micPermissionError": "No se pudo acceder al micrófono. Verifique los permisos del navegador.",
+      "notLoaded": "Audio no cargado",
+      "transcription": "Transcripción automática"
+    },
+    "reply": {
+      "title": "Responder",
+      "you": "Tú",
+      "contact": "Contacto",
+      "cancel": "Cancelar respuesta",
+      "media": "Medio / Adjunto"
+    },
+    "presence": {
+      "typing": "escribiendo...",
+      "recording": "grabando audio..."
+    },
+    "bot": {
+      "active": "Bot Activo",
+      "paused": "Humano (Bot Pausado)",
+      "toggleTitle": "Alternar entre Bot automático y Agente Humano"
+    },
+    "labels": {
+      "title": "Etiquetas",
+      "manage": "Administrar Etiquetas",
+      "empty": "No hay etiquetas creadas"
+    },
+    "edit": {
+      "action": "Editar mensaje",
+      "title": "Editar Mensaje",
+      "description": "Edita el texto de tu mensaje. Se actualizará para todos los participantes.",
+      "placeholder": "Escribe el nuevo texto...",
+      "cancel": "Cancelar",
+      "save": "Guardar Cambios",
+      "timeLimit": "Los mensajes solo se pueden editar dentro de los 15 minutos posteriores al envío."
+    },
+    "delete": {
+      "action": "Eliminar para todos",
+      "title": "¿Eliminar mensaje para todos?",
+      "description": "¿Estás seguro de que deseas eliminar este mensaje para todos los participantes?",
+      "cancel": "Cancelar",
+      "confirm": "Eliminar para Todos",
+      "deleted": "Este mensaje fue eliminado"
+    },
+    "status": {
+      "pending": "Pendiente",
+      "sent": "Enviado",
+      "delivered": "Entregado",
+      "read": "Leído"
+    },
+    "edited": "editado"
   },
   "common": {
     "search": "Buscar..."

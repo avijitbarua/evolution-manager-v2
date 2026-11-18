@@ -1569,7 +1569,60 @@
     "date": {
       "today": "Aujourd'hui",
       "yesterday": "Hier"
-    }
+    },
+    "audio": {
+      "recording": "Enregistrement du message vocal...",
+      "cancel": "Annuler l'enregistrement",
+      "send": "Envoyer le message vocal",
+      "micPermissionError": "Impossible d'accéder au microphone. Veuillez vérifier les autorisations de votre navigateur.",
+      "notLoaded": "Audio non chargé",
+      "transcription": "Transcription automatique"
+    },
+    "reply": {
+      "title": "Répondre",
+      "you": "Vous",
+      "contact": "Contact",
+      "cancel": "Annuler la réponse",
+      "media": "Média / Pièce jointe"
+    },
+    "presence": {
+      "typing": "en train d'écrire...",
+      "recording": "enregistre un audio..."
+    },
+    "bot": {
+      "active": "Bot Actif",
+      "paused": "Humain (Bot en Pause)",
+      "toggleTitle": "Basculer entre le bot automatique et l'agent humain"
+    },
+    "labels": {
+      "title": "Étiquettes",
+      "manage": "Gérer les étiquettes",
+      "empty": "Aucune étiquette créée"
+    },
+    "edit": {
+      "action": "Modifier le message",
+      "title": "Modifier le Message",
+      "description": "Modifiez le texte de votre message. Il sera mis à jour pour tous les participants.",
+      "placeholder": "Tapez le nouveau texte...",
+      "cancel": "Annuler",
+      "save": "Enregistrer les modifications",
+      "timeLimit": "Les messages ne peuvent être modifiés que dans les 15 minutes suivant leur envoi."
+    },
+    "delete": {
+      "action": "Supprimer pour tous",
+      "title": "Supprimer le message pour tous ?",
+      "description": "Voulez-vous vraiment supprimer ce message pour tous les participants ?",
+      "cancel": "Annuler",
+      "confirm": "Supprimer pour Tous",
+      "deleted": "Ce message a été supprimé"
+    },
+    "status": {
+      "pending": "En attente",
+      "sent": "Envoyé",
+      "delivered": "Distribué",
+      "read": "Lu"
+    },
+    "edited": "modifié"
   },
   "common": {
     "search": "Rechercher..."

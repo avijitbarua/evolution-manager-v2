@@ -56,6 +56,18 @@ export interface HandleLabelParams {
   action: "add" | "remove";
 }
 
+export interface ReadMessageKey {
+  id: string;
+  fromMe: boolean;
+  remoteJid: string;
+}
+
+export interface MarkMessageAsReadParams {
+  instanceName: string;
+  token?: string;
+  readMessages: ReadMessageKey[];
+}
+
 export const sendReaction = async ({ instanceName, token, key, reaction }: SendReactionParams) => {
   const response = await api.post(
     `/message/sendReaction/${instanceName}`,
@@ -145,6 +157,20 @@ export const handleLabel = async ({ instanceName, token, number, labelId, action
     token ? { headers: { apikey: token } } : undefined,
   );
   return response.data;
+};
+
+export const markMessageAsRead = async ({ instanceName, token, readMessages }: MarkMessageAsReadParams) => {
+  try {
+    const response = await api.post(
+      `/chat/markMessageAsRead/${instanceName}`,
+      { readMessages },
+      token ? { headers: { apikey: token } } : undefined,
+    );
+    return response.data;
+  } catch (error) {
+    console.warn("markMessageAsRead error:", error);
+    return null;
+  }
 };
 
 export function useChatActions() {

@@ -195,7 +195,60 @@
     "date": {
       "today": "Today",
       "yesterday": "Yesterday"
-    }
+    },
+    "audio": {
+      "recording": "Recording voice note...",
+      "cancel": "Cancel recording",
+      "send": "Send voice note",
+      "micPermissionError": "Could not access microphone. Please check your browser permissions.",
+      "notLoaded": "Audio could not be loaded",
+      "transcription": "Automatic transcription"
+    },
+    "reply": {
+      "title": "Reply",
+      "you": "You",
+      "contact": "Contact",
+      "cancel": "Cancel reply",
+      "media": "Media / Attachment"
+    },
+    "presence": {
+      "typing": "typing...",
+      "recording": "recording audio..."
+    },
+    "bot": {
+      "active": "Bot Active",
+      "paused": "Human (Bot Paused)",
+      "toggleTitle": "Toggle between automatic Bot and Human agent"
+    },
+    "labels": {
+      "title": "Labels",
+      "manage": "Manage Labels",
+      "empty": "No labels created"
+    },
+    "edit": {
+      "action": "Edit message",
+      "title": "Edit Message",
+      "description": "Edit your message text. It will be updated for all participants.",
+      "placeholder": "Type updated message...",
+      "cancel": "Cancel",
+      "save": "Save changes",
+      "timeLimit": "Messages can only be edited within 15 minutes of sending."
+    },
+    "delete": {
+      "action": "Delete for everyone",
+      "title": "Delete message for everyone?",
+      "description": "Are you sure you want to delete this message for all participants in this chat?",
+      "cancel": "Cancel",
+      "confirm": "Delete for everyone",
+      "deleted": "This message was deleted"
+    },
+    "status": {
+      "pending": "Pending",
+      "sent": "Sent",
+      "delivered": "Delivered",
+      "read": "Read"
+    },
+    "edited": "edited"
   },
   "sidebar": {
     "dashboard": "Dashboard",
