@@ -1,4 +1,4 @@
-import { RefObject, useEffect, useState } from "react";
+import { RefObject, useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 
 import { useInstance } from "@/contexts/InstanceContext";
@@ -79,54 +79,80 @@ function Messages({
     instanceName: instance?.name,
   });
 
-  const { data: queryMessages, isSuccess } = useFindMessages({
+  const { data: queryMessages, isLoading: isMessagesLoading, isSuccess } = useFindMessages({
     remoteJid,
     instanceName: instance?.name,
   });
 
-  // Sync React Query messages into canonical messageList
-  useEffect(() => {
-    if (queryMessages && Array.isArray(queryMessages)) {
-      setMessageList((prev) => {
-        const map = new Map<string, Message>();
-
-        // First populate with server messages
-        queryMessages.forEach((m) => {
-          const id = m.key?.id || m.id;
-          if (id) map.set(id, m);
-        });
-
-        // Merge and preserve any active local overrides (edits, sent messages, reactions, status updates)
-        prev.forEach((m) => {
-          const id = m.key?.id || m.id;
-          if (!id) return;
-
-          const serverMsg = map.get(id);
-          if (serverMsg) {
-            const anyM = m as any;
-            const anyServer = serverMsg as any;
-            map.set(id, {
-              ...serverMsg,
-              ...m,
-              message: anyM.isEdited ? m.message : serverMsg.message,
-              status:
-                m.status !== undefined && m.status !== "PENDING" && m.status !== 1
-                  ? m.status
-                  : serverMsg.status,
-              isEdited: anyM.isEdited || isMessageEdited(serverMsg),
-              isRevoked: anyM.isRevoked || isMessageRevoked(serverMsg),
-              reactions: anyM.reactions?.length ? anyM.reactions : anyServer.reactions,
-            } as Message);
-          } else {
-            // Keep locally added messages (e.g. optimistic or newly received via socket)
-            map.set(id, m);
-          }
-        });
-
-        return Array.from(map.values());
-      });
-    }
+  // Safely extract message records from any response structure
+  const serverMessages = useMemo(() => {
+    if (!queryMessages) return [];
+    if (Array.isArray(queryMessages)) return queryMessages;
+    if (Array.isArray((queryMessages as any)?.messages?.records))
+      return (queryMessages as any).messages.records;
+    if (Array.isArray((queryMessages as any)?.records))
+      return (queryMessages as any).records;
+    if (Array.isArray((queryMessages as any)?.messages))
+      return (queryMessages as any).messages;
+    return [];
   }, [queryMessages]);
+
+  // Sync React Query messages into canonical messageList without race conditions
+  useEffect(() => {
+    if (!remoteJid) {
+      setMessageList([]);
+      return;
+    }
+
+    setMessageList((prev) => {
+      const map = new Map<string, Message>();
+
+      // 1. First populate with server messages for this remoteJid
+      serverMessages.forEach((m: Message) => {
+        const id = m.key?.id || m.id;
+        if (id) map.set(id, m);
+      });
+
+      // 2. Only retain previous messages that belong to THIS remoteJid
+      const cleanTarget = remoteJid.split("@")[0];
+      prev.forEach((m: Message) => {
+        const msgJid = m.key?.remoteJid || (m as any).remoteJid || "";
+        const matches =
+          !msgJid ||
+          msgJid === remoteJid ||
+          msgJid.startsWith(cleanTarget) ||
+          (m.key?.id && m.key.id.startsWith("temp-"));
+
+        if (!matches) return; // Drop messages from other chats!
+
+        const id = m.key?.id || m.id;
+        if (!id) return;
+
+        const serverMsg = map.get(id);
+        if (serverMsg) {
+          const anyM = m as any;
+          const anyServer = serverMsg as any;
+          map.set(id, {
+            ...serverMsg,
+            ...m,
+            message: anyM.isEdited ? m.message : serverMsg.message,
+            status:
+              m.status !== undefined && m.status !== "PENDING" && m.status !== 1
+                ? m.status
+                : serverMsg.status,
+            isEdited: anyM.isEdited || isMessageEdited(serverMsg),
+            isRevoked: anyM.isRevoked || isMessageRevoked(serverMsg),
+            reactions: anyM.reactions?.length ? anyM.reactions : anyServer.reactions,
+          } as Message);
+        } else {
+          // Keep locally added messages (e.g. optimistic or newly received via socket)
+          map.set(id, m);
+        }
+      });
+
+      return Array.from(map.values());
+    });
+  }, [remoteJid, serverMessages]);
 
   // Hook 1: Real-time Presence
   const { contactPresence, notifyTyping, notifyPaused } = useChatPresence({
@@ -177,7 +203,6 @@ function Messages({
     setSelectedMedia(null);
     setMessageText("");
     setReplyingTo(null);
-    setMessageList([]);
     if (textareaRef.current) {
       textareaRef.current.value = "";
       handleTextareaChange();
@@ -229,19 +254,26 @@ function Messages({
       });
 
       const realMsg = res?.data || res;
-      if (realMsg?.key?.id) {
-        setMessageList((prev) =>
-          prev.map((m) =>
-            m.key?.id === tempId
+      const realId = realMsg?.key?.id;
+      if (realId) {
+        setMessageList((prev) => {
+          const socketAlreadyAdded = prev.some(
+            (m) => (m.key?.id || m.id) === realId && m.key?.id !== tempId && m.id !== tempId,
+          );
+          if (socketAlreadyAdded) {
+            return prev.filter((m) => m.key?.id !== tempId && m.id !== tempId);
+          }
+          return prev.map((m) =>
+            m.key?.id === tempId || m.id === tempId
               ? {
                   ...m,
-                  id: realMsg.key.id,
+                  id: realMsg.id || realId,
                   key: realMsg.key,
                   status: realMsg.status || 2, // Sent (Single check ✓)
                 }
               : m,
-          ),
-        );
+          );
+        });
       }
       setReplyingTo(null);
     } catch (error) {
@@ -331,19 +363,26 @@ function Messages({
 
       // Update from pending clock (1) to sent single check (2) immediately!
       const realMsg = res?.data || res;
-      if (realMsg?.key?.id) {
-        setMessageList((prev) =>
-          prev.map((m) =>
-            m.key?.id === tempId
+      const realId = realMsg?.key?.id;
+      if (realId) {
+        setMessageList((prev) => {
+          const socketAlreadyAdded = prev.some(
+            (m) => (m.key?.id || m.id) === realId && m.key?.id !== tempId && m.id !== tempId,
+          );
+          if (socketAlreadyAdded) {
+            return prev.filter((m) => m.key?.id !== tempId && m.id !== tempId);
+          }
+          return prev.map((m) =>
+            m.key?.id === tempId || m.id === tempId
               ? {
                   ...m,
-                  id: realMsg.key.id,
+                  id: realMsg.id || realId,
                   key: realMsg.key,
                   status: realMsg.status || 2, // Sent (Single check ✓)
                 }
               : m,
-          ),
-        );
+          );
+        });
       }
     } catch (error) {
       console.error("Error sending message:", error);
@@ -603,6 +642,7 @@ function Messages({
       <MessageList
         messages={messageList}
         remoteJid={remoteJid || ""}
+        isLoading={isMessagesLoading}
         lastMessageRef={lastMessageRef}
         onReact={handleSendReaction}
         onReply={(msg) => setReplyingTo(msg)}

@@ -127,6 +127,29 @@ export function useChatSocket({
       // 4. Upsert Message into canonical messageList
       setMessageList((prev) => {
         const incomingId = incomingMsg.key?.id || incomingMsg.id;
+        if (!incomingId) return prev;
+
+        // If it's an outgoing message sent from this client, match with any optimistic temp message
+        if (incomingMsg.key?.fromMe) {
+          const incomingText = getMessageText(incomingMsg.message);
+          const tempIdx = prev.findIndex(
+            (m) =>
+              ((m.key?.id && m.key.id.startsWith("temp-")) || (m.id && m.id.startsWith("temp-"))) &&
+              (!incomingText || getMessageText(m.message) === incomingText),
+          );
+
+          if (tempIdx !== -1) {
+            const next = [...prev];
+            next[tempIdx] = {
+              ...next[tempIdx],
+              ...incomingMsg,
+              id: incomingMsg.id || incomingId,
+              status: incomingMsg.status || 2,
+            };
+            return next;
+          }
+        }
+
         const existingIndex = prev.findIndex(
           (m) => (m.key?.id || m.id) === incomingId,
         );

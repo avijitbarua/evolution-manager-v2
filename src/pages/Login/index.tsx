@@ -129,7 +129,14 @@ function Login() {
     <div className="relative flex min-h-screen items-center justify-center bg-gradient-to-t from-primary/20 via-background/95 to-background p-4">
       <div className="w-full max-w-md space-y-6">
         <div className="flex flex-col items-center text-center">
-          <img src={logoSrc} alt="Evolution API" className="mb-3 h-10" />
+          <img
+            src={logoSrc}
+            alt="Evolution API"
+            className="mb-3 h-10"
+            onError={(e) => {
+              e.currentTarget.src = "/assets/images/evolution-logo.png";
+            }}
+          />
           <p className="text-sm text-muted-foreground">{t("login.description")}</p>
         </div>
 

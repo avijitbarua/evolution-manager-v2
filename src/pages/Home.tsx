@@ -24,6 +24,9 @@ export default function Home() {
             src={theme === "dark" ? "https://evolution-api.com/files/evo/evolution-logo-white.svg" : "https://evolution-api.com/files/evo/evolution-logo.svg"}
             alt="Evolution API Logo"
             className="h-8"
+            onError={(e) => {
+              e.currentTarget.src = "/assets/images/evolution-logo.png";
+            }}
           />
         </div>
         <div className="flex items-center gap-4">
@@ -41,6 +44,9 @@ export default function Home() {
                 src={theme === "dark" ? "https://evolution-api.com/files/evo/evolution-logo-white.svg" : "https://evolution-api.com/files/evo/evolution-logo.svg"}
                 alt="Evolution Manager Logo"
                 className="h-10"
+                onError={(e) => {
+                  e.currentTarget.src = "/assets/images/evolution-logo.png";
+                }}
               />
             </div>
             <h1 className="text-4xl font-bold text-foreground mb-4">

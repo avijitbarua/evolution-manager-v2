@@ -50,7 +50,14 @@ function SidebarShell({ children, footer }: { children: React.ReactNode; footer?
   return (
     <aside className="hidden md:flex bg-sidebar text-sidebar-foreground flex-col w-56 border-r border-sidebar-border">
       <div className="h-16 flex items-center px-4 border-b border-sidebar-border">
-        <img src={logoSrc} alt="Evolution API" className="h-7" />
+        <img
+          src={logoSrc}
+          alt="Evolution API"
+          className="h-7"
+          onError={(e) => {
+            e.currentTarget.src = "/assets/images/evolution-logo.png";
+          }}
+        />
       </div>
 
       <nav className="flex-1 overflow-y-auto px-2 py-4 space-y-1">
